@@ -1,0 +1,48 @@
+{
+  "mcpServers": {
+    "aws-cdk": {
+      "command": "uvx",
+      "args": ["awslabs.cdk-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "aws-diagram": {
+      "command": "uvx",
+      "args": ["awslabs.aws-diagram-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "aws-documentation": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_DOCUMENTATION_PARTITION": "aws"
+      }
+    },
+    "aws-eks": {
+      "command": "uvx",
+      "args": [
+        "awslabs.eks-mcp-server@latest",
+        "--allow-write",
+        "--allow-sensitive-data-access"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "aws-strands": {
+      "command": "uvx",
+      "args": ["strands-agents-mcp-server"]
+    },
+    "github": {
+      "command": "/usr/local/bin/github-mcp-server",
+      "args": ["stdio"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    }
+  }
+}

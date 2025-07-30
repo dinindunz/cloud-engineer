@@ -1,0 +1,11 @@
+boto3
+mcp
+mcp-proxy
+pydantic-core
+pygments
+setuptools
+strands-agents
+strands-agents-tools
+urllib3
+uv
+wheel
