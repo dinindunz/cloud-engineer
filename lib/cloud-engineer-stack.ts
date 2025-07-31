@@ -42,7 +42,7 @@ export class CloudEngineerStack extends cdk.Stack {
       enableExecuteCommand: true,
       taskImageOptions: {
         image: ecs.ContainerImage.fromAsset(path.join(__dirname, '../mcp-proxy'), {
-          file: 'Dockerfile',
+          file: 'Dockerfile.proxy',
           platform: assets.Platform.LINUX_AMD64,
         }),
         containerPort: 8096,

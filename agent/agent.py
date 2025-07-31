@@ -264,7 +264,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     logger.info(f"Strands processing: {error_data_json}")
 
             # Execute the AWS Cloud Engineer agent with context
-            agent_result = execute_aws_agent(error_data_json)
+            agent_result = execute_aws_agent(
+                "Follow the system prompt exactly - apply ONLY the specific fix needed, no broader improvements. Remember: Your role is automated incident response with minimal, targeted fixes only. No improvements beyond fixing the specific error."
+                + error_data_json
+            )
 
             # Format and post response to Slack
             slack_response = format_slack_response(agent_result)

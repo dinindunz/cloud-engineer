@@ -25,76 +25,26 @@ mcp_initialized = False
 bedrock_model = None
 
 # Enhanced system prompt for the agent
-system_prompt = """
-You are an expert AWS Cloud Engineer assistant integrated with Slack. Your job is to help with AWS infrastructure 
-management, optimization, security, and best practices.
-
-When triggered by an error in CloudWatch logs, you must:
-1. Analyze the CloudWatch log error and summarize the issue.
-2. Use the Jira MCP server to create a new Jira ticket describing the issue. The ticket should have an appropriate heading and a clear, actionable description based on the log error.
-3. Use the GitHub MCP server to raise a new Pull Request (PR) in the relevant GitHub repository (the repository name can be determined from the tag provided by the agent). The PR should reference the Jira ticket and include any necessary changes or notes to address the issue.
-
-You also have access to the AWS Documentation MCP server. Use it to look up official AWS documentation, best practices, and step-by-step guides when needed to provide authoritative answers or to support your recommendations.
-
-**GENERAL INSTRUCTIONS:**
-- Always use the AWS region specified in the AWS_REGION environment variable for all operations.
-- Provide clear, actionable advice with specific AWS CLI commands or console steps when applicable.
-- Focus on security best practices and cost optimization in your recommendations.
-- When users ask to "list" resources, provide a clear, organized list format.
-- Be specific and direct in your responses.
-- Never include <thinking> tags or expose your internal thought process.
-
-**CONTEXT AWARENESS:**
-- You're responding to Slack messages, so keep responses concise but informative.
-- Users expect quick, accurate answers to their AWS questions.
-- If a user asks for something specific (like "list stack names"), focus only on that request.
-- Don't provide unnecessary background information unless specifically asked.
-- Always operate in the region specified by AWS_REGION environment variable.
-
-**JIRA & GITHUB INTEGRATION:**
-- When an error is detected in CloudWatch logs, always:
-    - Summarize the error.
-    - Create a Jira ticket using the Jira MCP server with a relevant heading and description.
-    - Raise a new PR in the appropriate GitHub repository using the GitHub MCP server, referencing the Jira ticket.
-    - Ensure all actions are logged and clearly communicated in your response.
-
-**AWS DOCUMENTATION MCP SERVER:**
-- Use the AWS Documentation MCP server to search for and cite official AWS documentation, best practices, and implementation details as needed.
-- Reference documentation links or summaries in your responses when it helps the user.
-"""
+system_prompt = pathlib.Path("system_prompt.md").read_text()
 
 
 def create_bedrock_model() -> BedrockModel:
     """Create a BedrockModel with fallback options"""
     region = os.environ.get("AWS_REGION", "ap-southeast-2")
+    model_id = "apac.anthropic.claude-sonnet-4-20250514-v1:0"
 
-    # List of model IDs to try in order of preference
-    model_ids = [
-        "anthropic.claude-3-5-sonnet-20241022-v2:0",  # Claude 3.5 Sonnet V2
-        "anthropic.claude-3-5-sonnet-20240620-v1:0",  # Claude 3.5 Sonnet V1
-        "anthropic.claude-3-haiku-20240307-v1:0",  # Claude 3 Haiku
-        "anthropic.claude-3-sonnet-20240229-v1:0",  # Claude 3 Sonnet
-    ]
-
-    for model_id in model_ids:
-        try:
-            logger.info(f"Trying to create Bedrock model with ID: {model_id}")
-            model = BedrockModel(
-                model_id=model_id,
-                region_name=region,
-                temperature=0.1,  # Lower temperature for more focused responses
-                max_tokens=2000,  # Reasonable limit for Slack responses
-            )
-            logger.info(f"Successfully created Bedrock model: {model_id}")
-            return model
-        except Exception as e:
-            logger.warning(f"Model {model_id} not available: {e}")
-            continue
-
-    # If all models fail, raise the last exception
-    raise Exception(
-        "No Claude models are available in your AWS Bedrock account. Please check your AWS console."
-    )
+    try:
+        logger.info(f"Trying to create Bedrock model with ID: {model_id}")
+        model = BedrockModel(
+            model_id=model_id,
+            region_name=region,
+            temperature=0.1,  # Lower temperature for more focused responses
+            max_tokens=2000,  # Reasonable limit for Slack responses
+        )
+        logger.info(f"Successfully created Bedrock model: {model_id}")
+        return model
+    except Exception as e:
+        logger.warning(f"Model {model_id} not available: {e}")
 
 
 def initialize_mcp_client() -> Optional[List]:

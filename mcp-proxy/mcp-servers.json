@@ -1,5 +1,14 @@
 {
   "mcpServers": {
+    "atlassian": {
+      "command": "python",
+      "args": ["./atlassian_mcp.py"],
+      "env": {
+        "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}",
+        "ATLASSIAN_EMAIL": "dinindunz@gmail.com",
+        "ATLASSIAN_INSTANCE_URL": "https://dinindunz.atlassian.net"
+      }
+    },
     "aws-cdk": {
       "command": "uvx",
       "args": ["awslabs.cdk-mcp-server@latest"],

@@ -17,8 +17,11 @@ FROM python:3.11-slim
 
 # Install system dependencies
 RUN apt-get update && \
-    apt-get install -y git build-essential && \
+    apt-get install -y git build-essential curl && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+RUN pip install requests
 
 # Install uv package manager
 RUN pip install uv
@@ -34,6 +37,10 @@ RUN chmod +x /usr/local/bin/github-mcp-server
 
 # Create app directory
 WORKDIR /app
+
+# Copy our custom Atlassian MCP server
+COPY atlassian_mcp.py ./atlassian_mcp.py
+RUN chmod +x ./atlassian_mcp.py
 
 # Copy configuration
 COPY mcp-servers.json ./mcp-servers.json
