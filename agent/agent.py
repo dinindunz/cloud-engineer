@@ -81,7 +81,10 @@ def get_user_info(user_id: str, bot_token: str) -> Dict[str, Any]:
     """Get user information from Slack API"""
     try:
         url = f"https://slack.com/api/users.info?user={user_id}"
-        headers = {"Authorization": f"Bearer {bot_token}", "Content-Type": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {bot_token}",
+            "Content-Type": "application/json",
+        }
 
         response = http.request("GET", url, headers=headers)
         return json.loads(response.data.decode("utf-8"))
@@ -96,7 +99,10 @@ def post_slack_message(
     """Post message to Slack channel with optional threading"""
     try:
         url = "https://slack.com/api/chat.postMessage"
-        headers = {"Authorization": f"Bearer {bot_token}", "Content-Type": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {bot_token}",
+            "Content-Type": "application/json",
+        }
 
         data = {
             "channel": channel,
@@ -109,7 +115,9 @@ def post_slack_message(
 
         logger.info(f"Posting message to channel {channel}: {text[:100]}...")
 
-        response = http.request("POST", url, body=json.dumps(data).encode("utf-8"), headers=headers)
+        response = http.request(
+            "POST", url, body=json.dumps(data).encode("utf-8"), headers=headers
+        )
         result = json.loads(response.data.decode("utf-8"))
 
         logger.debug(f"Slack API response: {result}")
@@ -177,7 +185,9 @@ def create_audit_log(
                 "awsAction": "custom_task",
                 "awsSuccess": aws_result.get("success", False),
                 "awsPrompt": aws_result.get("prompt"),
-                "responseLength": len(aws_result.get("result", "")) if aws_result else 0,
+                "responseLength": (
+                    len(aws_result.get("result", "")) if aws_result else 0
+                ),
             }
         )
 
@@ -221,7 +231,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 tags = response.get("tags", {})
                 github_repo = tags.get("GitHubRepo", "unknown")
             except Exception as tag_error:
-                logger.warning(f"Could not fetch tags for {log_group}: {str(tag_error)}")
+                logger.warning(
+                    f"Could not fetch tags for {log_group}: {str(tag_error)}"
+                )
 
             logger.info(f"Processing CloudWatch Logs from: {log_group}")
             logger.info(f"GitHub Repository: {github_repo}")
@@ -232,7 +244,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 timestamp = log_event["timestamp"]
 
                 if any(
-                    error_keyword in message for error_keyword in ["ERROR", "Exception", "Failed"]
+                    error_keyword in message
+                    for error_keyword in ["ERROR", "Exception", "Failed"]
                 ):
                     logger.info(f"Error detected in {log_group}")
                     logger.info(f"Error Message: {message}")
@@ -257,7 +270,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             slack_response = format_slack_response(agent_result)
             post_result = post_slack_message("C02JWK1LN9X", slack_response, bot_token)
 
-            return {"statusCode": 200, "body": json.dumps("Successfully processed CloudWatch Logs")}
+            return {
+                "statusCode": 200,
+                "body": json.dumps("Successfully processed CloudWatch Logs"),
+            }
 
         # Handle actual Slack events
         if "event" in body:
@@ -285,11 +301,19 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             # Rate limiting
             if should_rate_limit():
                 logger.warning("Rate limited - skipping message")
-                return {"statusCode": 200, "body": json.dumps({"message": "Rate limited"})}
+                return {
+                    "statusCode": 200,
+                    "body": json.dumps({"message": "Rate limited"}),
+                }
 
             if not bot_token:
-                logger.error("Error: SLACK_BOT_TOKEN not found in environment variables")
-                return {"statusCode": 500, "body": json.dumps({"error": "Missing bot token"})}
+                logger.error(
+                    "Error: SLACK_BOT_TOKEN not found in environment variables"
+                )
+                return {
+                    "statusCode": 500,
+                    "body": json.dumps({"error": "Missing bot token"}),
+                }
 
             try:
                 # Get user info
@@ -308,7 +332,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
                     # Format and post response to Slack
                     slack_response = format_slack_response(agent_result)
-                    post_result = post_slack_message(channel, slack_response, bot_token, thread_ts)
+                    post_result = post_slack_message(
+                        channel, slack_response, bot_token, thread_ts
+                    )
 
                     # Log the result
                     if post_result.get("ok"):
@@ -332,7 +358,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     "messageId": message_id,
                     "error": str(error),
                 }
-                logger.warning("FALLBACK AUDIT LOG: %s", json.dumps(fallback_audit_log, indent=2))
+                logger.warning(
+                    "FALLBACK AUDIT LOG: %s", json.dumps(fallback_audit_log, indent=2)
+                )
 
         return {"statusCode": 200, "body": json.dumps({"message": "OK"})}
 

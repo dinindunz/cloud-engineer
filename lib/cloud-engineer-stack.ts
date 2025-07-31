@@ -91,6 +91,18 @@ export class CloudEngineerStack extends cdk.Stack {
         iam.ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess'),
       ],
     });
+    
+    // Read MCP server configuration
+    let config = require(path.join(__dirname, '../mcp-proxy/mcp-servers.json'));
+
+    // If wrapped in a top-level object, unwrap it
+    const firstValue = Object.values(config)[0];
+    if (Object.keys(config).length === 1 && typeof firstValue === 'object') {
+      config = firstValue;
+    }
+
+    // Get server names
+    const mcpServers = Object.keys(config);
 
     // Create Lambda function
     const cloudEngineerFunction = new lambda.DockerImageFunction(this, 'CloudEngineerFunction', {
@@ -102,7 +114,8 @@ export class CloudEngineerStack extends cdk.Stack {
       timeout: cdk.Duration.minutes(15),
       memorySize: 512,
       environment: {
-        MCP_PROXY_URL: loadBalancedFargateService.loadBalancer.loadBalancerDnsName,
+        MCP_PROXY_DNS: loadBalancedFargateService.loadBalancer.loadBalancerDnsName,
+        MCP_SERVERS: JSON.stringify(mcpServers),
         SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET || '',
         SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN || '',
         SLACK_BOT_USER_ID: process.env.SLACK_BOT_USER_ID || '',

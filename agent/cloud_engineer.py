@@ -8,6 +8,7 @@ from strands_tools import use_aws
 from typing import Dict, List, Optional, Any, Union
 import json
 import re
+import pathlib
 
 custom_env = os.environ.copy()
 custom_env["UV_CACHE_DIR"] = "/tmp/uv_cache"
@@ -17,7 +18,6 @@ custom_env["XDG_CACHE_HOME"] = "/tmp"
 logger = logging.getLogger(__name__)
 
 # Global variables for MCP client and agent
-aws_docs_mcp_client = None
 agent = None
 mcp_initialized = False
 
@@ -98,44 +98,45 @@ def create_bedrock_model() -> BedrockModel:
 
 
 def initialize_mcp_client() -> Optional[List]:
-    """Initialize the MCP client and return tools"""
-    global aws_docs_mcp_client, mcp_initialized
+    """Initialize multiple MCP clients from a server list in the MCP_SERVERS environment variable and return all tools"""
 
-    try:
-        # Set up AWS Documentation MCP client
-        aws_docs_mcp_client = MCPClient(
-            lambda: stdio_client(
-                StdioServerParameters(
-                    # command="uvx",
-                    # args=["awslabs.aws-documentation-mcp-server@latest"],
-                    command="mcp-proxy",
-                    args=[
-                        f"http://{os.environ.get('MCP_PROXY_URL')}/servers/aws-documentation/sse"
-                    ],
-                    env=custom_env,
+    global mcp_initialized
+
+    # Get MCP server list from environment variable (expects a JSON array string)
+    mcp_servers = json.loads(os.environ.get("MCP_SERVERS", "[]"))
+
+    all_tools = []
+    mcp_initialized = False
+
+    for mcp_server in mcp_servers:
+        logger.info(f"Initializing MCP client for server: {mcp_server}")
+        try:
+            mcp_client = MCPClient(
+                lambda: stdio_client(
+                    StdioServerParameters(
+                        command="mcp-proxy",
+                        args=[
+                            f"http://{os.environ.get('MCP_PROXY_DNS')}/servers/{mcp_server}/sse"
+                        ],
+                        env=custom_env,
+                    )
                 )
             )
-        )
+            mcp_client.start()
+            tools = mcp_client.list_tools_sync()
+            all_tools.extend(tools)
+            logger.info(
+                f"MCP client '{mcp_server}' initialized successfully with {len(tools)} tools"
+            )
+            mcp_initialized = True
 
-        # Start the MCP client session
-        aws_docs_mcp_client.start()
+        except ImportError as e:
+            logger.warning(f"MCP dependencies not available for {mcp_server}: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize MCP client '{mcp_server}': {e}")
+            logger.info(f"Agent will continue without {mcp_server} tools")
 
-        # Get tools from MCP client
-        docs_tools = aws_docs_mcp_client.list_tools_sync()
-        mcp_initialized = True
-
-        logger.info(f"MCP client initialized successfully with {len(docs_tools)} tools")
-        return docs_tools
-
-    except ImportError as e:
-        logger.warning(f"MCP dependencies not available: {e}")
-        mcp_initialized = False
-        return []
-    except Exception as e:
-        logger.warning(f"Failed to initialize MCP client: {e}")
-        logger.info("Agent will continue without AWS documentation tools")
-        mcp_initialized = False
-        return []
+    return all_tools
 
 
 def get_agent() -> Agent:
@@ -147,11 +148,11 @@ def get_agent() -> Agent:
         if bedrock_model is None:
             bedrock_model = create_bedrock_model()
 
-        # Initialize MCP client and get tools
-        docs_tools = initialize_mcp_client()
+        # Initialize all MCP clients and get all tools
+        all_mcp_tools = initialize_mcp_client()
 
-        # Create the agent with all tools and Bedrock model
-        all_tools = [use_aws] + (docs_tools or [])
+        # Compose the agent with AWS tools and all MCP tools
+        all_tools = [use_aws] + (all_mcp_tools or [])
         agent = Agent(tools=all_tools, model=bedrock_model, system_prompt=system_prompt)
 
     return agent
