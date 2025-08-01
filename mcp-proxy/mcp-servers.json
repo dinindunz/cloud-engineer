@@ -1,13 +1,8 @@
 {
   "mcpServers": {
     "atlassian": {
-      "command": "python",
-      "args": ["./atlassian_mcp.py"],
-      "env": {
-        "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}",
-        "ATLASSIAN_EMAIL": "dinindunz@gmail.com",
-        "ATLASSIAN_INSTANCE_URL": "https://dinindunz.atlassian.net"
-      }
+      "command": "/root/.local/bin/mcp-proxy",
+      "args": ["http://CloudE-McpAt-DZTf1EjrmMe8-1574587818.ap-southeast-2.elb.amazonaws.com/sse"]
     },
     "aws-cdk": {
       "command": "uvx",

@@ -29,7 +29,7 @@ When triggered by CloudWatch log errors, execute this workflow automatically:
    - Extract relevant error codes, timestamps, and context
 
 2. **Issue Documentation**
-   - Create a Jira ticket using the Jira MCP server with:
+   - Create a Jira ticket in Cloud Operations project using the Jira MCP server with:
      - Priority based on error severity
      - Descriptive title following format: "[SERVICE] - [ERROR_TYPE] - [BRIEF_DESCRIPTION]"
      - Detailed description including error details, impact assessment, and initial investigation notes

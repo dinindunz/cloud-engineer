@@ -31,18 +31,20 @@ export class CloudEngineerStack extends cdk.Stack {
       ],
     });
 
-    // Load Balanced Fargate Service with CDK Docker build
-    const loadBalancedFargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'McpProxyService', {
-      cluster: new ecs.Cluster(this, 'McpProxyCluster', {
+    const cluster = new ecs.Cluster(this, 'McpProxyCluster', {
         vpc,
         clusterName: 'mcp-proxy-cluster',
-      }),
+      });
+
+    // Load Balanced Fargate MCP Proxy with CDK Docker build
+    const mcpProxyService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'McpProxyService', {
+      cluster,
       memoryLimitMiB: 1024,
       cpu: 512,
       enableExecuteCommand: true,
       taskImageOptions: {
         image: ecs.ContainerImage.fromAsset(path.join(__dirname, '../mcp-proxy'), {
-          file: 'Dockerfile.proxy',
+          file: 'Dockerfile',
           platform: assets.Platform.LINUX_AMD64,
         }),
         containerPort: 8096,
@@ -66,13 +68,13 @@ export class CloudEngineerStack extends cdk.Stack {
     });
 
     // Allow traffic on port 8096
-    loadBalancedFargateService.service.connections.allowFromAnyIpv4(
+    mcpProxyService.service.connections.allowFromAnyIpv4(
       ec2.Port.tcp(8096),
       'Allow MCP Proxy traffic'
     );
 
     // Configure health check for MCP Proxy
-    loadBalancedFargateService.targetGroup.configureHealthCheck({
+    mcpProxyService.targetGroup.configureHealthCheck({
       path: "/",
       port: "8096",
       healthyHttpCodes: "200,404", // 404 might is ok if no health endpoint
@@ -80,7 +82,58 @@ export class CloudEngineerStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(5),
       healthyThresholdCount: 2,
       unhealthyThresholdCount: 3,
-    });    
+    });
+    
+    // Load Balanced Fargate MCP Atlassian with CDK Docker build
+    const mcpAtlassian = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'McpAtlassian', {
+      cluster,
+      memoryLimitMiB: 1024,
+      cpu: 512,
+      enableExecuteCommand: true,
+      taskImageOptions: {
+        image: ecs.ContainerImage.fromRegistry("ghcr.io/sooperset/mcp-atlassian:latest"),
+        command: ["--transport", "sse", "--port", "9000"],
+        containerPort: 9000,
+        environment: {
+          CONFLUENCE_URL: `${process.env.ATLASSIAN_INSTANCE_URL}/wiki` || '',
+          CONFLUENCE_USERNAME: process.env.ATLASSIAN_EMAIL || '',
+          CONFLUENCE_API_TOKEN: process.env.ATLASSIAN_API_TOKEN || '',
+          JIRA_URL: process.env.ATLASSIAN_INSTANCE_URL || '',
+          JIRA_USERNAME: process.env.ATLASSIAN_EMAIL || '',
+          JIRA_API_TOKEN: process.env.ATLASSIAN_API_TOKEN || ''
+        },
+        logDriver: ecs.LogDrivers.awsLogs({
+          streamPrefix: 'mcp-atlassian',
+          logGroup: new logs.LogGroup(this, 'McpAtlassianLogGroup', {
+            logGroupName: '/ecs/mcp-atlassian',
+            retention: logs.RetentionDays.ONE_WEEK,
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+          }),
+        }),
+      },
+      containerCpu: 256,
+      containerMemoryLimitMiB: 512,
+      minHealthyPercent: 100,
+      listenerPort: 80,
+      assignPublicIp: true,
+    });
+
+    // Allow traffic on port 9000
+    mcpAtlassian.service.connections.allowFromAnyIpv4(
+      ec2.Port.tcp(9000),
+      'Allow MCP Proxy traffic'
+    );
+
+    // Configure health check for MCP Proxy
+    mcpAtlassian.targetGroup.configureHealthCheck({
+      path: "/",
+      port: "9000",
+      healthyHttpCodes: "200,404,405", // 404 might is ok if no health endpoint
+      interval: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.seconds(5),
+      healthyThresholdCount: 2,
+      unhealthyThresholdCount: 3,
+    });
 
     // Create IAM role for Lambda function
     const lambdaRole = new iam.Role(this, 'CloudEngineerLambdaRole', {
@@ -114,7 +167,7 @@ export class CloudEngineerStack extends cdk.Stack {
       timeout: cdk.Duration.minutes(15),
       memorySize: 512,
       environment: {
-        MCP_PROXY_DNS: loadBalancedFargateService.loadBalancer.loadBalancerDnsName,
+        MCP_PROXY_DNS: mcpProxyService.loadBalancer.loadBalancerDnsName,
         MCP_SERVERS: JSON.stringify(mcpServers),
         SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET || '',
         SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN || '',
