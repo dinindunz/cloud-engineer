@@ -1,6 +1,7 @@
 import os
 import logging
-from strands import Agent
+import atexit
+from strands import Agent, tool
 from strands.tools.mcp import MCPClient
 from strands.models import BedrockModel
 from mcp import StdioServerParameters, stdio_client
@@ -18,14 +19,28 @@ custom_env["XDG_CACHE_HOME"] = "/tmp"
 logger = logging.getLogger(__name__)
 
 # Global variables for MCP client and agent
-agent = None
+orchestrator_agent = None
 mcp_initialized = False
+mcp_clients = []  # Track all MCP clients for cleanup
 
 # Model creation will happen during agent initialization
 bedrock_model = None
 
 # Enhanced system prompt for the agent
-system_prompt = pathlib.Path("system_prompt.md").read_text()
+system_prompt = pathlib.Path("prompts/system/orchestrator.md").read_text()
+
+# Specialized agents
+knowledge_base_agent = None
+error_analysis_agent = None
+jira_agent = None
+pr_agent = None
+operations_agent = None
+
+# MCP tools storage
+aws_documentation_tools = []
+atlassian_mcp_tools = []
+aws_cdk_tools = []
+github_mcp_tools = []
 
 
 def create_bedrock_model() -> BedrockModel:
@@ -47,15 +62,39 @@ def create_bedrock_model() -> BedrockModel:
         logger.warning(f"Model {model_id} not available: {e}")
 
 
-def initialize_mcp_client() -> Optional[List]:
-    """Initialize multiple MCP clients from a server list in the MCP_SERVERS environment variable and return all tools"""
+# Register cleanup handler for MCP clients
+def cleanup():
+    """Clean up MCP client resources"""
+    global mcp_clients, mcp_initialized
 
-    global mcp_initialized
+    try:
+        if mcp_clients and mcp_initialized:
+            for i, mcp_client in enumerate(mcp_clients):
+                try:
+                    # Use context manager exit method if available
+                    if hasattr(mcp_client, "__exit__"):
+                        mcp_client.__exit__(None, None, None)
+                    else:
+                        # Fallback to stop method if it exists
+                        if hasattr(mcp_client, "stop"):
+                            mcp_client.stop()
+                    logger.info(f"MCP client {i+1} stopped")
+                except Exception as e:
+                    logger.error(f"Error stopping MCP client {i+1}: {e}")
+            mcp_clients.clear()  # Clear the list after cleanup
+    except Exception as e:
+        logger.error(f"Error during MCP clients cleanup: {e}")
+    finally:
+        mcp_initialized = False
+
+
+def initialize_mcp_clients():
+    """Initialize multiple MCP clients and categorize tools by server"""
+    global mcp_initialized, mcp_clients, aws_documentation_tools, atlassian_mcp_tools, aws_cdk_tools, github_mcp_tools
 
     # Get MCP server list from environment variable (expects a JSON array string)
     mcp_servers = json.loads(os.environ.get("MCP_SERVERS", "[]"))
 
-    all_tools = []
     mcp_initialized = False
 
     for mcp_server in mcp_servers:
@@ -74,7 +113,20 @@ def initialize_mcp_client() -> Optional[List]:
             )
             mcp_client.start()
             tools = mcp_client.list_tools_sync()
-            all_tools.extend(tools)
+
+            # Add client to tracking list for cleanup
+            mcp_clients.append(mcp_client)
+
+            # Categorize tools by server
+            if mcp_server == "aws-documentation":
+                aws_documentation_tools.extend(tools)
+            elif mcp_server == "atlassian":
+                atlassian_mcp_tools.extend(tools)
+            elif mcp_server == "aws-cdk":
+                aws_cdk_tools.extend(tools)
+            elif mcp_server == "github":
+                github_mcp_tools.extend(tools)
+
             logger.info(
                 f"MCP client '{mcp_server}' initialized successfully with {len(tools)} tools"
             )
@@ -86,26 +138,131 @@ def initialize_mcp_client() -> Optional[List]:
             logger.warning(f"Failed to initialize MCP client '{mcp_server}': {e}")
             logger.info(f"Agent will continue without {mcp_server} tools")
 
-    return all_tools
+
+def initialize_specialized_agents():
+    """Initialize the 5 specialized agents"""
+    global knowledge_base_agent, error_analysis_agent, jira_agent, pr_agent, operations_agent, bedrock_model
+
+    # Create the Bedrock model if not already created
+    if bedrock_model is None:
+        bedrock_model = create_bedrock_model()
+
+    # Initialize MCP clients and categorize tools
+    initialize_mcp_clients()
+
+    # Agent 1: Knowledge Base Agent
+    knowledge_base_prompt = pathlib.Path("prompts/agents/knowledge_base.md").read_text()
+    knowledge_base_agent = Agent(
+        system_prompt=knowledge_base_prompt,
+        tools=aws_documentation_tools,
+        model=bedrock_model,
+    )
+
+    # Agent 2: Error Analysis Agent
+    error_analysis_prompt = pathlib.Path("prompts/agents/error_analysis.md").read_text()
+    error_analysis_agent = Agent(
+        system_prompt=error_analysis_prompt,
+        tools=[use_aws],
+        model=bedrock_model,
+    )
+
+    # Agent 3: JIRA Agent
+    jira_prompt = pathlib.Path("prompts/agents/jira.md").read_text()
+    jira_agent = Agent(
+        system_prompt=jira_prompt,
+        tools=atlassian_mcp_tools,
+        model=bedrock_model,
+    )
+
+    # Agent 4: PR Agent
+    pr_prompt = pathlib.Path("prompts/agents/pr.md").read_text()
+    pr_agent = Agent(
+        system_prompt=pr_prompt,
+        tools=aws_cdk_tools + github_mcp_tools,
+        model=bedrock_model,
+    )
+
+    # Agent 5: Operations Agent
+    operations_prompt = pathlib.Path("prompts/agents/operations.md").read_text()
+    operations_agent = Agent(
+        system_prompt=operations_prompt,
+        tools=[use_aws],
+        model=bedrock_model,
+    )
+
+
+# Convert specialized agents into tools for the orchestrator
+@tool
+def knowledge_base_specialist(query: str) -> str:
+    """Get AWS knowledge and documentation information"""
+    if knowledge_base_agent is None:
+        initialize_specialized_agents()
+    response = knowledge_base_agent(query)
+    return str(response)
+
+
+@tool
+def error_analysis_specialist(query: str) -> str:
+    """Analyze CloudWatch logs and errors to suggest code changes"""
+    if error_analysis_agent is None:
+        initialize_specialized_agents()
+    response = error_analysis_agent(query)
+    return str(response)
+
+
+@tool
+def jira_specialist(query: str) -> str:
+    """Create JIRA tickets for infrastructure issues"""
+    if jira_agent is None:
+        initialize_specialized_agents()
+    response = jira_agent(query)
+    return str(response)
+
+
+@tool
+def pr_specialist(query: str) -> str:
+    """Create GitHub repositories and pull requests for code changes"""
+    if pr_agent is None:
+        initialize_specialized_agents()
+    response = pr_agent(query)
+    return str(response)
+
+
+@tool
+def operations_specialist(query: str) -> str:
+    """Perform operational tasks on AWS resources"""
+    if operations_agent is None:
+        initialize_specialized_agents()
+    response = operations_agent(query)
+    return str(response)
 
 
 def get_agent() -> Agent:
-    """Get or create the agent instance"""
-    global agent, bedrock_model
+    """Get or create the orchestrator agent instance"""
+    global orchestrator_agent, bedrock_model
 
-    if agent is None:
+    if orchestrator_agent is None:
         # Create the Bedrock model if not already created
         if bedrock_model is None:
             bedrock_model = create_bedrock_model()
 
-        # Initialize all MCP clients and get all tools
-        all_mcp_tools = initialize_mcp_client()
+        # Initialize specialized agents
+        initialize_specialized_agents()
 
-        # Compose the agent with AWS tools and all MCP tools
-        all_tools = [use_aws] + (all_mcp_tools or [])
-        agent = Agent(tools=all_tools, model=bedrock_model, system_prompt=system_prompt)
+        # Create orchestrator agent with specialist tools
+        orchestrator_agent = Agent(
+            tools=[
+                knowledge_base_specialist,
+                error_analysis_specialist,
+                jira_specialist,
+                pr_specialist,
+                operations_specialist,
+            ],
+            model=bedrock_model,
+            system_prompt=system_prompt,
+        )
 
-    return agent
+    return orchestrator_agent
 
 
 def extract_text_from_response(response: Any) -> str:
@@ -222,7 +379,7 @@ def health_check() -> Dict[str, Any]:
     """Health check function to verify system status"""
     return {
         "mcp_initialized": mcp_initialized,
-        "agent_ready": agent is not None,
+        "orchestrator_agent_ready": orchestrator_agent is not None,
         "aws_region": os.environ.get("AWS_REGION", "ap-southeast-2"),
         "bedrock_model_ready": bedrock_model is not None,
     }
@@ -246,3 +403,7 @@ if __name__ == "__main__":
         logger.info(f"Result: {result}")
 
     logger.info(f"Final health check: {health_check()}")
+
+
+# Register cleanup handler for MCP clients
+atexit.register(cleanup)
