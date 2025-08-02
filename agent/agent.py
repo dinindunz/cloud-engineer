@@ -128,18 +128,31 @@ def post_slack_message(
         return {"ok": False, "error": str(e)}
 
 
-def execute_aws_agent(prompt: str) -> Dict[str, Any]:
-    """Execute AWS Cloud Engineer agent with prompt"""
+def execute_aws_agent(prompt: str, incident_id: Optional[str] = None, request_type: str = "slack") -> Dict[str, Any]:
+    """Execute AWS Cloud Engineer agent with prompt and cost tracking"""
     try:
         logger.info(f"Executing AWS agent with prompt: {prompt}")
+        logger.info(f"Request type: {request_type}, Incident ID: {incident_id}")
 
-        # Execute the task using the fixed cloud_engineer module
-        result = execute_custom_task(prompt)
+        # Execute the task using the fixed cloud_engineer module with cost tracking
+        result = execute_custom_task(prompt, incident_id=incident_id)
 
-        return {"success": True, "result": result, "prompt": prompt}
+        return {
+            "success": True, 
+            "result": result, 
+            "prompt": prompt,
+            "incident_id": incident_id,
+            "request_type": request_type
+        }
     except Exception as e:
         logger.error(f"Error executing AWS agent: {e}")
-        return {"success": False, "error": str(e), "prompt": prompt}
+        return {
+            "success": False, 
+            "error": str(e), 
+            "prompt": prompt,
+            "incident_id": incident_id,
+            "request_type": request_type
+        }
 
 
 def format_slack_response(agent_result: Dict[str, Any]) -> str:
@@ -150,8 +163,8 @@ def format_slack_response(agent_result: Dict[str, Any]) -> str:
     result = agent_result.get("result", "")
 
     # Truncate if too long (Slack has message limits)
-    if len(result) > 3000:
-        result = result[:2900] + "\n\n... (truncated for Slack)"
+    # if len(result) > 3000:
+    #     result = result[:2900] + "\n\n... (truncated for Slack)"
 
     return f"🤖 **AWS Cloud Engineer Response:**\n```\n{result}\n```"
 
@@ -251,6 +264,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     logger.info(f"Error Message: {message}")
                     logger.info(f"GitHub Repo: {github_repo}")
 
+                    # Generate incident ID for cost tracking
+                    incident_id = f"cw-{log_group.replace('/', '-')}-{timestamp}"
+                    
                     error_data = {
                         "source": "cloudwatch_logs",
                         "github_repo": github_repo,
@@ -258,15 +274,18 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         "log_stream": log_stream,
                         "error_message": message,
                         "timestamp": timestamp,
+                        "incident_id": incident_id,
                     }
 
                     error_data_json = json.dumps(error_data, indent=2)
                     logger.info(f"Strands processing: {error_data_json}")
 
-            # Execute the AWS Cloud Engineer agent with context
+            # Execute the AWS Cloud Engineer agent with context and cost tracking
             agent_result = execute_aws_agent(
                 "Follow the system prompt exactly - apply ONLY the specific fix needed, no broader improvements. Remember: Your role is automated incident response with minimal, targeted fixes only. No improvements beyond fixing the specific error."
-                + error_data_json
+                + error_data_json,
+                incident_id=incident_id,
+                request_type="cloudwatch_incident"
             )
 
             # Format and post response to Slack

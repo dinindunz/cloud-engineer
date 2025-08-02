@@ -6,7 +6,9 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import * as assets from 'aws-cdk-lib/aws-ecr-assets'; 
+import * as assets from 'aws-cdk-lib/aws-ecr-assets';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
@@ -135,6 +137,129 @@ export class CloudEngineerStack extends cdk.Stack {
       unhealthyThresholdCount: 3,
     });
 
+    // DynamoDB table for Bedrock token usage logging
+    const bedrockTokenUsageTable = new dynamodb.Table(this, 'BedrockTokenUsageTable', {
+      tableName: 'bedrock-token-usage',
+      partitionKey: {
+        name: 'timestamp',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'agent_id',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'ttl',
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // GSI for querying by agent_id
+    bedrockTokenUsageTable.addGlobalSecondaryIndex({
+      indexName: 'agent-id-index',
+      partitionKey: {
+        name: 'agent_id',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'timestamp',
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    // GSI for querying by incident_id
+    bedrockTokenUsageTable.addGlobalSecondaryIndex({
+      indexName: 'incident-id-index',
+      partitionKey: {
+        name: 'incident_id',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'timestamp',
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    // CloudWatch Log Group for Bedrock token usage
+    const bedrockTokenLogGroup = new logs.LogGroup(this, 'BedrockTokenLogGroup', {
+      logGroupName: '/aws/lambda/bedrock-token-usage',
+      retention: logs.RetentionDays.ONE_MONTH,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    // CloudWatch Dashboard for Bedrock token usage monitoring
+    const bedrockDashboard = new cloudwatch.Dashboard(this, 'BedrockTokenUsageDashboard', {
+      dashboardName: 'BedrockTokenUsage',
+    });
+
+    // Add widgets to the dashboard
+    bedrockDashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: 'Bedrock Token Usage Over Time',
+        left: [
+          new cloudwatch.Metric({
+            namespace: 'BedrockUsage',
+            metricName: 'InputTokens',
+            statistic: 'Sum',
+          }),
+          new cloudwatch.Metric({
+            namespace: 'BedrockUsage',
+            metricName: 'OutputTokens',
+            statistic: 'Sum',
+          }),
+        ],
+        width: 12,
+        height: 6,
+      }),
+      new cloudwatch.GraphWidget({
+        title: 'Estimated Cost Over Time',
+        left: [
+          new cloudwatch.Metric({
+            namespace: 'BedrockUsage',
+            metricName: 'EstimatedCost',
+            statistic: 'Sum',
+          }),
+        ],
+        width: 12,
+        height: 6,
+      }),
+      new cloudwatch.GraphWidget({
+        title: 'Token Usage by Agent',
+        left: [
+          new cloudwatch.Metric({
+            namespace: 'BedrockUsage',
+            metricName: 'TotalTokensPerIncident',
+            statistic: 'Sum',
+          }),
+        ],
+        width: 12,
+        height: 6,
+      })
+    );
+
+    // CloudWatch Alarms for cost monitoring
+    const highCostAlarm = new cloudwatch.Alarm(this, 'BedrockHighCostAlarm', {
+      metric: new cloudwatch.Metric({
+        namespace: 'BedrockUsage',
+        metricName: 'EstimatedCost',
+        statistic: 'Sum',
+      }),
+      threshold: 100, // $100 threshold
+      evaluationPeriods: 1,
+      alarmDescription: 'Bedrock usage cost exceeded $100 in the last period',
+    });
+
+    const dailyCostAlarm = new cloudwatch.Alarm(this, 'BedrockDailyCostAlarm', {
+      metric: new cloudwatch.Metric({
+        namespace: 'BedrockUsage',
+        metricName: 'EstimatedCost',
+        statistic: 'Sum',
+        period: cdk.Duration.days(1),
+      }),
+      threshold: 50, // $50 daily threshold
+      evaluationPeriods: 1,
+      alarmDescription: 'Daily Bedrock usage cost exceeded $50',
+    });
+
     // Create IAM role for Lambda function
     const lambdaRole = new iam.Role(this, 'CloudEngineerLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
@@ -144,6 +269,44 @@ export class CloudEngineerStack extends cdk.Stack {
         iam.ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess'),
       ],
     });
+
+    // Add permissions for Bedrock token logging
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'dynamodb:PutItem',
+        'dynamodb:GetItem',
+        'dynamodb:Query',
+        'dynamodb:Scan',
+        'dynamodb:BatchWriteItem',
+      ],
+      resources: [
+        bedrockTokenUsageTable.tableArn,
+        `${bedrockTokenUsageTable.tableArn}/index/*`,
+      ],
+    }));
+
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'cloudwatch:PutMetricData',
+      ],
+      resources: ['*'],
+      conditions: {
+        StringEquals: {
+          'cloudwatch:namespace': 'BedrockUsage',
+        },
+      },
+    }));
+
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'logs:CreateLogStream',
+        'logs:PutLogEvents',
+      ],
+      resources: [bedrockTokenLogGroup.logGroupArn],
+    }));
     
     // Read MCP server configuration
     let config = require(path.join(__dirname, '../mcp-proxy/mcp-servers.json'));
@@ -172,6 +335,11 @@ export class CloudEngineerStack extends cdk.Stack {
         SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET || '',
         SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN || '',
         SLACK_BOT_USER_ID: process.env.SLACK_BOT_USER_ID || '',
+        // Cost monitoring configuration
+        BEDROCK_TOKEN_TABLE_NAME: bedrockTokenUsageTable.tableName,
+        CLOUDWATCH_NAMESPACE: 'BedrockUsage',
+        COST_LOGGING_ENABLED: 'true',
+        TOKEN_RETENTION_DAYS: '30',
       },
       description: 'AWS Cloud Engineer for Slack integration',
     });

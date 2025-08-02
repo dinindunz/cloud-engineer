@@ -11,6 +11,15 @@ import json
 import re
 import pathlib
 
+# Import cost modelling components
+try:
+    from cost_modelling.monitored_agent import MonitoredBedrockAgent
+    from cost_modelling.logging_config import LoggingConfig
+    COST_LOGGING_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Cost modelling not available: {e}")
+    COST_LOGGING_AVAILABLE = False
+
 custom_env = os.environ.copy()
 custom_env["UV_CACHE_DIR"] = "/tmp/uv_cache"
 custom_env["XDG_CACHE_HOME"] = "/tmp"
@@ -25,6 +34,11 @@ mcp_clients = []  # Track all MCP clients for cleanup
 
 # Model creation will happen during agent initialization
 bedrock_model = None
+
+# Cost monitoring setup
+cost_monitoring_agent = None
+cost_config = None
+current_incident_id = None
 
 # Enhanced system prompt for the agent
 system_prompt = pathlib.Path("prompts/system/orchestrator.md").read_text()
@@ -43,6 +57,27 @@ aws_cdk_tools = []
 github_mcp_tools = []
 
 
+def initialize_cost_monitoring():
+    """Initialize cost monitoring components"""
+    global cost_monitoring_agent, cost_config
+    
+    if not COST_LOGGING_AVAILABLE:
+        logger.info("Cost monitoring not available - continuing without token logging")
+        return
+    
+    try:
+        # Initialize cost monitoring configuration
+        cost_config = LoggingConfig()
+        cost_monitoring_agent = MonitoredBedrockAgent(
+            config=cost_config,
+            region_name=os.environ.get("AWS_REGION", "ap-southeast-2")
+        )
+        logger.info("Cost monitoring initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to initialize cost monitoring: {e}")
+        cost_monitoring_agent = None
+
+
 def create_bedrock_model() -> BedrockModel:
     """Create a BedrockModel with fallback options"""
     region = os.environ.get("AWS_REGION", "ap-southeast-2")
@@ -57,6 +92,10 @@ def create_bedrock_model() -> BedrockModel:
             max_tokens=2000,  # Reasonable limit for Slack responses
         )
         logger.info(f"Successfully created Bedrock model: {model_id}")
+        
+        # Initialize cost monitoring
+        initialize_cost_monitoring()
+        
         return model
     except Exception as e:
         logger.warning(f"Model {model_id} not available: {e}")
@@ -139,8 +178,77 @@ def initialize_mcp_clients():
             logger.info(f"Agent will continue without {mcp_server} tools")
 
 
+def create_monitored_bedrock_model(agent_id: str, incident_id: Optional[str] = None) -> BedrockModel:
+    """Create a BedrockModel with cost monitoring wrapper"""
+    region = os.environ.get("AWS_REGION", "ap-southeast-2")
+    model_id = "apac.anthropic.claude-sonnet-4-20250514-v1:0"
+    
+    if not COST_LOGGING_AVAILABLE or cost_monitoring_agent is None:
+        # Fallback to regular model if cost monitoring not available
+        return BedrockModel(
+            model_id=model_id,
+            region_name=region,
+            temperature=0.1,
+            max_tokens=2000,
+        )
+    
+    # Create a wrapper class that integrates cost monitoring
+    class MonitoredBedrockModel(BedrockModel):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.agent_id = agent_id
+            self.incident_id = incident_id
+        
+        def invoke(self, messages, **kwargs):
+            """Override invoke to add cost monitoring"""
+            try:
+                # Convert messages to the format expected by cost monitoring
+                if isinstance(messages, list):
+                    # Convert Strands message format to Bedrock format
+                    body = {
+                        "messages": messages,
+                        "max_tokens": kwargs.get("max_tokens", self.max_tokens),
+                        "temperature": kwargs.get("temperature", self.temperature)
+                    }
+                else:
+                    body = messages
+                
+                # Use cost monitoring agent for the API call
+                response = cost_monitoring_agent.invoke_model_with_logging(
+                    model_id=self.model_id,
+                    body=body,
+                    agent_id=self.agent_id,
+                    incident_id=self.incident_id,
+                    context={"strands_integration": True}
+                )
+                
+                # Extract the Bedrock response and return in expected format
+                bedrock_response = response.get('bedrock_response', response)
+                
+                # Log cost information
+                if 'token_logging' in response:
+                    log_data = response['token_logging']
+                    logger.info(f"Token usage - Agent: {self.agent_id}, "
+                              f"Tokens: {log_data.get('total_tokens', 0)}, "
+                              f"Cost: ${log_data.get('estimated_cost', 0):.6f}")
+                
+                return bedrock_response
+                
+            except Exception as e:
+                logger.error(f"Error in monitored Bedrock call: {e}")
+                # Fallback to regular model call
+                return super().invoke(messages, **kwargs)
+    
+    return MonitoredBedrockModel(
+        model_id=model_id,
+        region_name=region,
+        temperature=0.1,
+        max_tokens=2000,
+    )
+
+
 def initialize_specialized_agents():
-    """Initialize the 5 specialized agents"""
+    """Initialize the 5 specialized agents with cost monitoring"""
     global knowledge_base_agent, error_analysis_agent, jira_agent, pr_agent, operations_agent, bedrock_model
 
     # Create the Bedrock model if not already created
@@ -155,7 +263,7 @@ def initialize_specialized_agents():
     knowledge_base_agent = Agent(
         system_prompt=knowledge_base_prompt,
         tools=aws_documentation_tools,
-        model=bedrock_model,
+        model=create_monitored_bedrock_model("knowledge-base", current_incident_id),
     )
 
     # Agent 2: Error Analysis Agent
@@ -163,7 +271,7 @@ def initialize_specialized_agents():
     error_analysis_agent = Agent(
         system_prompt=error_analysis_prompt,
         tools=[use_aws],
-        model=bedrock_model,
+        model=create_monitored_bedrock_model("error-analysis", current_incident_id),
     )
 
     # Agent 3: JIRA Agent
@@ -171,7 +279,7 @@ def initialize_specialized_agents():
     jira_agent = Agent(
         system_prompt=jira_prompt,
         tools=atlassian_mcp_tools,
-        model=bedrock_model,
+        model=create_monitored_bedrock_model("jira", current_incident_id),
     )
 
     # Agent 4: PR Agent
@@ -179,7 +287,7 @@ def initialize_specialized_agents():
     pr_agent = Agent(
         system_prompt=pr_prompt,
         tools=aws_cdk_tools + github_mcp_tools,
-        model=bedrock_model,
+        model=create_monitored_bedrock_model("pr", current_incident_id),
     )
 
     # Agent 5: Operations Agent
@@ -187,7 +295,7 @@ def initialize_specialized_agents():
     operations_agent = Agent(
         system_prompt=operations_prompt,
         tools=[use_aws],
-        model=bedrock_model,
+        model=create_monitored_bedrock_model("operations", current_incident_id),
     )
 
 
@@ -249,7 +357,7 @@ def get_agent() -> Agent:
         # Initialize specialized agents
         initialize_specialized_agents()
 
-        # Create orchestrator agent with specialist tools
+        # Create orchestrator agent with specialist tools and cost monitoring
         orchestrator_agent = Agent(
             tools=[
                 knowledge_base_specialist,
@@ -257,8 +365,10 @@ def get_agent() -> Agent:
                 jira_specialist,
                 pr_specialist,
                 operations_specialist,
+                get_cost_summary,
+                flush_cost_metrics,
             ],
-            model=bedrock_model,
+            model=create_monitored_bedrock_model("cloud-engineer", current_incident_id),
             system_prompt=system_prompt,
         )
 
@@ -353,26 +463,53 @@ def clean_agent_response(response: Union[str, Dict, Any]) -> str:
     return cleaned.strip()
 
 
-def execute_custom_task(task_description: str) -> str:
-    """Execute a custom cloud engineering task based on description"""
+def execute_custom_task(task_description: str, incident_id: Optional[str] = None) -> str:
+    """Execute a custom cloud engineering task based on description with cost tracking"""
+    global current_incident_id
+    
+    # Set current incident ID for cost tracking
+    if incident_id:
+        current_incident_id = incident_id
+        logger.info(f"Starting task execution for incident: {incident_id}")
+    
     try:
-        # Get the agent instance (will initialize if needed)
-        agent_instance = get_agent()
-
-        # Execute the agent
-        response = agent_instance(task_description)
-
-        logger.debug(f"Agent response type: {type(response)}")
-        logger.debug(f"Agent response: {response}")
-
-        # Clean and format the response
-        result = clean_agent_response(response)
-
-        return result
+        # Use incident context if cost monitoring is available
+        if COST_LOGGING_AVAILABLE and cost_monitoring_agent and incident_id:
+            with cost_monitoring_agent.incident_context(incident_id) as tracked_incident_id:
+                # Get the agent instance (will initialize if needed)
+                agent_instance = get_agent()
+                
+                # Execute the agent
+                response = agent_instance(task_description)
+                
+                logger.debug(f"Agent response type: {type(response)}")
+                logger.debug(f"Agent response: {response}")
+                
+                # Clean and format the response
+                result = clean_agent_response(response)
+                
+                # Log incident completion
+                logger.info(f"Task completed for incident: {tracked_incident_id}")
+                
+                return result
+        else:
+            # Fallback to regular execution without incident tracking
+            agent_instance = get_agent()
+            response = agent_instance(task_description)
+            
+            logger.debug(f"Agent response type: {type(response)}")
+            logger.debug(f"Agent response: {response}")
+            
+            result = clean_agent_response(response)
+            return result
+            
     except Exception as e:
         error_message = f"Error executing AWS task: {str(e)}"
         logger.error(error_message)
         return error_message
+    finally:
+        # Clear current incident ID
+        current_incident_id = None
 
 
 def health_check() -> Dict[str, Any]:
@@ -382,7 +519,57 @@ def health_check() -> Dict[str, Any]:
         "orchestrator_agent_ready": orchestrator_agent is not None,
         "aws_region": os.environ.get("AWS_REGION", "ap-southeast-2"),
         "bedrock_model_ready": bedrock_model is not None,
+        "cost_monitoring_available": COST_LOGGING_AVAILABLE,
+        "cost_monitoring_agent_ready": cost_monitoring_agent is not None,
     }
+
+
+@tool
+def get_cost_summary(date: Optional[str] = None) -> str:
+    """Get cost summary for Bedrock usage"""
+    if not COST_LOGGING_AVAILABLE or cost_monitoring_agent is None:
+        return "Cost monitoring not available"
+    
+    try:
+        from cost_modelling.cost_analyzer import CostAnalyzer
+        from datetime import datetime
+        
+        if not date:
+            date = datetime.utcnow().strftime('%Y-%m-%d')
+        
+        analyzer = CostAnalyzer(config=cost_config)
+        report = analyzer.generate_daily_cost_report(date)
+        
+        summary = f"""**Daily Cost Report for {date}**
+        
+**Summary:**
+- Total Cost: ${report.total_cost:.6f}
+- Total Tokens: {report.total_tokens:,}
+- Total Requests: {report.total_requests}
+- Avg Cost/Request: ${report.average_cost_per_request:.6f}
+
+**By Agent:**"""
+        
+        for agent_id, data in report.breakdown.get('by_agent', {}).items():
+            summary += f"\n- {agent_id}: ${data['cost']:.6f} ({data['tokens']:,} tokens, {data['requests']} requests)"
+        
+        return summary
+        
+    except Exception as e:
+        return f"Error generating cost summary: {e}"
+
+
+@tool 
+def flush_cost_metrics() -> str:
+    """Flush any buffered cost metrics to CloudWatch"""
+    if not COST_LOGGING_AVAILABLE or cost_monitoring_agent is None:
+        return "Cost monitoring not available"
+    
+    try:
+        cost_monitoring_agent.flush_all_metrics()
+        return "Cost metrics flushed successfully"
+    except Exception as e:
+        return f"Error flushing metrics: {e}"
 
 
 if __name__ == "__main__":
