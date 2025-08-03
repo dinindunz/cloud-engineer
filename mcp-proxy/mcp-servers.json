@@ -2,7 +2,7 @@
   "mcpServers": {
     "atlassian": {
       "command": "/root/.local/bin/mcp-proxy",
-      "args": ["http://CloudE-McpAt-iXraZNlvttlN-1282762053.ap-southeast-2.elb.amazonaws.com/sse"]
+      "args": ["http://CloudE-McpAt-UbcY8nii0gAq-1036399644.ap-southeast-2.elb.amazonaws.com/sse"]
     },
     "aws-cdk": {
       "command": "uvx",
@@ -23,7 +23,7 @@
       "command": "/usr/local/bin/github-mcp-server",
       "args": ["stdio"],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
       }
     }
   }

@@ -282,8 +282,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
             # Execute the AWS Cloud Engineer agent with context and cost tracking
             agent_result = execute_aws_agent(
-                "Follow the system prompt exactly - apply ONLY the specific fix needed, no broader improvements. Remember: Your role is automated incident response with minimal, targeted fixes only. No improvements beyond fixing the specific error."
-                + error_data_json,
+                error_data_json,
                 incident_id=incident_id,
                 request_type="cloudwatch_incident"
             )
