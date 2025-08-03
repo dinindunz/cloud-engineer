@@ -149,7 +149,7 @@ def initialize_mcp_clients():
 
 
 def initialize_specialized_agents():
-    """Initialize the 5 specialized agents using Application Inference Profile"""
+    """Initialize the 5 specialized agents using shared Bedrock model"""
     global knowledge_base_agent, error_analysis_agent, jira_agent, pr_agent, operations_agent, bedrock_model
 
     # Create the Bedrock model if not already created
@@ -164,7 +164,7 @@ def initialize_specialized_agents():
     knowledge_base_agent = Agent(
         system_prompt=knowledge_base_prompt,
         tools=aws_documentation_tools,
-        model=create_bedrock_model(),
+        model=bedrock_model,  # Reuse shared model
     )
 
     # Agent 2: Error Analysis Agent
@@ -172,7 +172,7 @@ def initialize_specialized_agents():
     error_analysis_agent = Agent(
         system_prompt=error_analysis_prompt,
         tools=[use_aws],
-        model=create_bedrock_model(),
+        model=bedrock_model,  # Reuse shared model
     )
 
     # Agent 3: JIRA Agent
@@ -180,7 +180,7 @@ def initialize_specialized_agents():
     jira_agent = Agent(
         system_prompt=jira_prompt,
         tools=atlassian_mcp_tools,
-        model=create_bedrock_model(),
+        model=bedrock_model,  # Reuse shared model
     )
 
     # Agent 4: PR Agent
@@ -188,7 +188,7 @@ def initialize_specialized_agents():
     pr_agent = Agent(
         system_prompt=pr_prompt,
         tools=aws_cdk_tools + github_mcp_tools,
-        model=create_bedrock_model(),
+        model=bedrock_model,  # Reuse shared model
     )
 
     # Agent 5: Operations Agent
@@ -196,7 +196,7 @@ def initialize_specialized_agents():
     operations_agent = Agent(
         system_prompt=operations_prompt,
         tools=[use_aws],
-        model=create_bedrock_model(),
+        model=bedrock_model,  # Reuse shared model
     )
 
 
@@ -258,7 +258,7 @@ def get_agent() -> Agent:
         # Initialize specialized agents
         initialize_specialized_agents()
 
-        # Create orchestrator agent with specialist tools
+        # Create orchestrator agent with specialist tools using shared model
         orchestrator_agent = Agent(
             tools=[
                 knowledge_base_specialist,
@@ -269,7 +269,7 @@ def get_agent() -> Agent:
                 get_cost_summary,
                 get_cost_explorer_link,
             ],
-            model=create_bedrock_model(),
+            model=bedrock_model,  # Reuse shared model
             system_prompt=system_prompt,
         )
 

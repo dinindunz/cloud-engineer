@@ -7,7 +7,6 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as assets from 'aws-cdk-lib/aws-ecr-assets';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import { Construct } from 'constructs';
 import * as path from 'path';
@@ -164,22 +163,22 @@ export class CloudEngineerStack extends cdk.Stack {
       }
     });
 
-    // CloudWatch Dashboard for Bedrock cost monitoring (simplified)
-    const bedrockDashboard = new cloudwatch.Dashboard(this, 'BedrockCostDashboard', {
-      dashboardName: 'BedrockCostTracking',
-    });
+    // // CloudWatch Dashboard for Bedrock cost monitoring (simplified)
+    // const bedrockDashboard = new cloudwatch.Dashboard(this, 'BedrockCostDashboard', {
+    //   dashboardName: 'BedrockCostTracking',
+    // });
 
-    // Add cost tracking widget
-    bedrockDashboard.addWidgets(
-      new cloudwatch.GraphWidget({
-        title: 'Bedrock Usage Costs (via Cost Explorer)',
-        left: [],
-        width: 12,
-        height: 6,
-        // Note: Cost Explorer metrics are not available in CloudWatch
-        // Users should check AWS Cost Explorer for actual cost data
-      })
-    );
+    // // Add cost tracking widget
+    // bedrockDashboard.addWidgets(
+    //   new cloudwatch.GraphWidget({
+    //     title: 'Bedrock Usage Costs (via Cost Explorer)',
+    //     left: [],
+    //     width: 12,
+    //     height: 6,
+    //     // Note: Cost Explorer metrics are not available in CloudWatch
+    //     // Users should check AWS Cost Explorer for actual cost data
+    //   })
+    // );
 
     // Create IAM role for Lambda function
     const lambdaRole = new iam.Role(this, 'CloudEngineerLambdaRole', {

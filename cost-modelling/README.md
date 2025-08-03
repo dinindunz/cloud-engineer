@@ -24,6 +24,7 @@ The CDK stack creates:
 
 The agent code:
 - Uses the **inference profile ARN** instead of the model ID
+- **Shares a single Bedrock model instance** across all agents (orchestrator + 5 specialists)
 - Provides **cost summary tools** that direct users to Cost Explorer
 - **Eliminates complex token logging** and custom metrics
 
