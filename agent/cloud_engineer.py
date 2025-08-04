@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Any, Union
 import json
 import re
 import pathlib
+from surgical_code_fixer import create_surgical_fixer
 
 # Cost tracking is now handled natively via Application Inference Profiles
 # No need for complex custom logging infrastructure
@@ -37,7 +38,6 @@ system_prompt = pathlib.Path("prompts/system/orchestrator.md").read_text()
 
 # Specialized agents
 knowledge_base_agent = None
-error_analysis_agent = None
 jira_agent = None
 pr_agent = None
 operations_agent = None
@@ -45,7 +45,7 @@ operations_agent = None
 # MCP tools storage
 aws_documentation_tools = []
 atlassian_mcp_tools = []
-aws_cdk_tools = []
+# aws_cdk_tools = []
 github_mcp_tools = []
 
 
@@ -99,7 +99,7 @@ def cleanup():
 
 def initialize_mcp_clients():
     """Initialize multiple MCP clients and categorize tools by server"""
-    global mcp_initialized, mcp_clients, aws_documentation_tools, atlassian_mcp_tools, aws_cdk_tools, github_mcp_tools
+    global mcp_initialized, mcp_clients, aws_documentation_tools, atlassian_mcp_tools, github_mcp_tools
 
     # Get MCP server list from environment variable (expects a JSON array string)
     mcp_servers = json.loads(os.environ.get("MCP_SERVERS", "[]"))
@@ -131,8 +131,8 @@ def initialize_mcp_clients():
                 aws_documentation_tools.extend(tools)
             elif mcp_server == "atlassian":
                 atlassian_mcp_tools.extend(tools)
-            elif mcp_server == "aws-cdk":
-                aws_cdk_tools.extend(tools)
+            # elif mcp_server == "aws-cdk":
+            #     aws_cdk_tools.extend(tools)
             elif mcp_server == "github":
                 github_mcp_tools.extend(tools)
 
@@ -149,8 +149,8 @@ def initialize_mcp_clients():
 
 
 def initialize_specialized_agents():
-    """Initialize the 5 specialized agents using shared Bedrock model"""
-    global knowledge_base_agent, error_analysis_agent, jira_agent, pr_agent, operations_agent, bedrock_model
+    """Initialize the 4 specialized agents using shared Bedrock model"""
+    global knowledge_base_agent, jira_agent, pr_agent, operations_agent, bedrock_model
 
     # Create the Bedrock model if not already created
     if bedrock_model is None:
@@ -167,15 +167,7 @@ def initialize_specialized_agents():
         model=bedrock_model,  # Reuse shared model
     )
 
-    # Agent 2: Error Analysis Agent
-    error_analysis_prompt = pathlib.Path("prompts/agents/error_analysis.md").read_text()
-    error_analysis_agent = Agent(
-        system_prompt=error_analysis_prompt,
-        tools=[use_aws],
-        model=bedrock_model,  # Reuse shared model
-    )
-
-    # Agent 3: JIRA Agent
+    # Agent 2: JIRA Agent
     jira_prompt = pathlib.Path("prompts/agents/jira.md").read_text()
     jira_agent = Agent(
         system_prompt=jira_prompt,
@@ -187,7 +179,7 @@ def initialize_specialized_agents():
     pr_prompt = pathlib.Path("prompts/agents/pr.md").read_text()
     pr_agent = Agent(
         system_prompt=pr_prompt,
-        tools=aws_cdk_tools + github_mcp_tools,
+        tools=github_mcp_tools,
         model=bedrock_model,  # Reuse shared model
     )
 
@@ -207,15 +199,6 @@ def knowledge_base_specialist(query: str) -> str:
     if knowledge_base_agent is None:
         initialize_specialized_agents()
     response = knowledge_base_agent(query)
-    return str(response)
-
-
-@tool
-def error_analysis_specialist(query: str) -> str:
-    """Analyze CloudWatch logs and errors to suggest code changes"""
-    if error_analysis_agent is None:
-        initialize_specialized_agents()
-    response = error_analysis_agent(query)
     return str(response)
 
 
@@ -246,6 +229,57 @@ def operations_specialist(query: str) -> str:
     return str(response)
 
 
+@tool
+def surgical_code_fix(error_log: str, repo_name: str) -> str:
+    """
+    Surgical code fixer - Claude-like precision for CloudWatch error fixes
+    Uses Bedrock with specialized prompts for surgical code editing
+    
+    Args:
+        error_log: CloudWatch error log content
+        repo_name: Repository name from CloudWatch tags
+    """
+    try:
+        # Initialize if needed
+        if bedrock_model is None:
+            initialize_specialized_agents()
+            
+        # Create surgical fixer instance
+        surgical_fixer = create_surgical_fixer(bedrock_model, github_mcp_tools)
+        
+        # Execute surgical fix
+        result = surgical_fixer.fix_cloudwatch_error(error_log, repo_name)
+        
+        if result.get("success"):
+            return f"""✅ Surgical Code Fix Complete
+
+🔍 **Error Analysis:**
+- **File**: {result['location'].get('file_path')}
+- **Function**: {result['location'].get('function_name')}
+- **Error Type**: {result['location'].get('error_type')}
+- **Root Cause**: {result['location'].get('likely_cause')}
+
+🔧 **Fix Applied:**
+- **Change Type**: {result['fix'].get('change_type')}
+- **Description**: {result['fix'].get('change_description')}
+- **Lines Changed**: {result['fix'].get('lines_changed')}
+
+📋 **Pull Request:**
+- **PR URL**: {result.get('pr_url')}
+- **PR Number**: #{result.get('pr_number')}
+
+⚡ **Next Steps:**
+- Review and merge PR to resolve error
+- Monitor CloudWatch for error resolution
+"""
+        else:
+            return f"❌ Surgical fix failed: {result.get('error')}"
+            
+    except Exception as e:
+        logger.error(f"Surgical code fix failed: {e}")
+        return f"❌ Surgical code fix failed: {str(e)}"
+
+
 def get_agent() -> Agent:
     """Get or create the orchestrator agent instance"""
     global orchestrator_agent, bedrock_model
@@ -262,10 +296,10 @@ def get_agent() -> Agent:
         orchestrator_agent = Agent(
             tools=[
                 knowledge_base_specialist,
-                error_analysis_specialist,
                 jira_specialist,
                 pr_specialist,
                 operations_specialist,
+                surgical_code_fix,
                 get_cost_summary,
                 get_cost_explorer_link,
             ],
