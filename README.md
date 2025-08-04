@@ -59,21 +59,39 @@ This architecture represents a comprehensive cloud engineer agent solution built
 ```
 ![Architecture Diagram](generated-diagrams/cloud-engineer-architecture.png)
 
+## System Context
+
+This Lambda function is triggered by two primary sources:
+- **Slack Messages**: User interactions through Slack interface for cloud engineering queries and operations
+- **CloudWatch Log Events**: Automated error detection and response workflow for infrastructure monitoring
+
+The system behavior is defined in `agent/system_prompt.md`, which outlines the agent's capabilities for AWS operations management and automated error response workflows.
+
 ## Enhanced Data Flow
 
-1. **User Input**: Users interact through Slack with cloud engineering queries
-2. **API Gateway**: Slack webhook triggers AWS API Gateway
-3. **Lambda Processing**: Strands Agent processes requests using multiple services:
+1. **Input Sources**: 
+   - Users interact through Slack with cloud engineering queries
+   - CloudWatch Logs trigger automated error response workflows
 
-   **3a. Documentation Queries**: AWS Documentation MCP Server for technical references
-   **3b. Cost Analysis**: AWS Cost Explorer MCP Server for billing and cost optimization
-   **3c. AWS Operations**: use_aws Strands Tool for direct AWS service interactions
-   **3d. AI Generation**: Claude Model for natural language processing
-   **3e. Content Safety**: Bedrock Guardrails for response validation
-   **3f. Knowledge Retrieval**: Knowledge Base for contextual information
+2. **API Gateway**: Slack webhook and CloudWatch events trigger AWS API Gateway
 
-4. **Response Aggregation**: Lambda combines responses from all services
-5. **Final Response**: Processed response flows back to Slack
+3. **Lambda Processing**: AWS Strands-powered Lambda function processes requests using integrated tools:
+   - **aws_doc_tools**: Access to AWS documentation and best practices
+   - **aws_cdk_tools**: CDK-specific operations and guidance  
+   - **github_tools**: Repository management and pull request operations
+   - **atlassian_tools**: Jira integration for issue tracking and project management
+   - **use_aws**: Direct AWS service interactions and resource management
+   - **memory**: Context retention and conversation history
+
+4. **External Service Integration**:
+   - **MCP Proxy (ALB)**: Load-balanced access to containerized MCP servers running on Fargate
+   - **Amazon Bedrock**: Claude model for AI processing, Knowledge Base for RAG, and Guardrails for content safety
+   - **Cost Metrics**: Integration with Cost Explorer and CloudWatch Dashboard for cost monitoring
+   - **External APIs**: GitHub API, Atlassian API, and AWS Documentation services
+
+5. **Response Processing**: Lambda aggregates responses from all integrated services and tools
+
+6. **Output Delivery**: Processed responses flow back to Slack, with automated Jira ticket creation and GitHub PR generation for error response workflows
 
 ## Key Components
 
@@ -123,6 +141,59 @@ This architecture represents a comprehensive cloud engineer agent solution built
 - Bedrock Guardrails for content safety
 - AWS IAM for granular access control
 - Audit logging for all operations
+
+## Demos
+
+Explore the Cloud Engineer Agent capabilities through interactive demonstrations:
+
+- **[Automated Error Response](demos/automated-error-response/README.md)** - Complete workflow from CloudWatch error detection to automated Jira ticket creation and GitHub PR generation
+- **[Cloud Operations](demos/cloud-ops/README.md)** - Direct AWS service interactions, resource management, and infrastructure operations
+- **[General Queries](demos/general-queries/README.md)** - AWS documentation lookup, best practices guidance, and expert recommendations
+
+## File Structure
+
+```
+cloud-engineer/
+├── README.md                           # Main project documentation
+├── package.json                        # Node.js dependencies and scripts
+├── cdk.json                            # CDK configuration
+├── tsconfig.json                       # TypeScript configuration
+├── jest.config.js                      # Jest testing configuration
+├── LICENSE.md                          # Project license
+├── .gitignore                          # Git ignore patterns
+├── .npmignore                          # NPM ignore patterns
+├── cdk.context.json                    # CDK context cache
+├── cloud-engineer-agent-architecture.png # Legacy architecture diagram
+│
+├── agent/                              # Lambda function source code
+│   ├── agent.py                        # Main Lambda handler
+│   ├── cloud_engineer.py               # Core agent implementation
+│   ├── system_prompt.md                # Agent behavior definition
+│   ├── requirements.txt                # Python dependencies
+│   └── Dockerfile                      # Container configuration
+│
+├── bin/                                # CDK application entry point
+│   └── cloud-engineer.ts               # CDK app definition
+│
+├── lib/                                # CDK infrastructure code
+│   └── cloud-engineer-stack.ts         # Main infrastructure stack
+│
+├── mcp-proxy/                          # MCP server proxy configuration
+│   ├── Dockerfile                      # Proxy container configuration
+│   ├── entrypoint.sh                   # Container startup script
+│   └── mcp-servers.json                # MCP server definitions
+│
+├── demos/                              # Demo screenshots and documentation
+│   ├── automated-error-response/       # Error response workflow demos
+│   ├── cloud-ops/                      # AWS operations demos
+│   └── general-queries/                # Documentation query demos
+│
+├── generated-diagrams/                 # Architecture diagrams
+│   └── cloud-engineer-architecture.png # Current system architecture
+│
+└── tests/                              # Test files
+    └── test_cloud_engineer.py          # Agent unit tests
+```
 
 ## Scalability & Performance
 
