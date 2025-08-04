@@ -2,7 +2,7 @@
   "mcpServers": {
     "atlassian": {
       "command": "/root/.local/bin/mcp-proxy",
-      "args": ["http://CloudE-McpAt-DZTf1EjrmMe8-1574587818.ap-southeast-2.elb.amazonaws.com/sse"]
+      "args": ["http://CloudE-McpAt-tzii6zcNrVhl-1141187667.ap-southeast-2.elb.amazonaws.com/sse"]
     },
     "aws-cdk": {
       "command": "uvx",

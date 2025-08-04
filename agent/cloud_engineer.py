@@ -38,8 +38,8 @@ def create_bedrock_model() -> BedrockModel:
         model = BedrockModel(
             model_id=model_id,
             region_name=region,
-            temperature=0.1,  # Lower temperature for more focused responses
-            max_tokens=2000,  # Reasonable limit for Slack responses
+            temperature=0,
+            max_tokens=12000,
         )
         logger.info(f"Successfully created Bedrock model: {model_id}")
         return model

@@ -37,11 +37,16 @@ When triggered by CloudWatch log errors, execute this workflow automatically:
 
 3. **Solution Implementation**
    - Extract the GitHub repository name from CloudWatch log group tags
-   - Analyze the current infrastructure state in the identified repository
+   - Analyze the current infrastructure state in the identified repository.
+   - Always use main branch to analyze.
    - Identify the root cause and required fixes
-   - For CDK-based infrastructure: Use CDK MCP server to generate necessary code changes
    - **CRITICAL**: Apply ONLY the specific fix for the identified issue - do not implement broader security improvements, best practices, or code refactoring unless directly related to the error
-   - Preserve existing code patterns and styles
+   - **🚨 PRESERVE EXISTING CODE PATTERNS and STYLES AT ALL COSTS 🚨**
+     - Make ONLY the absolute minimum changes required to fix the specific error
+     - NEVER delete existing code unless it's directly causing the error
+     - NEVER refactor or "improve" unrelated code
+     - NEVER change existing aws resource names, variable names, function names, or structure
+     - NEVER modify working code that isn't part of the fix
    - Create GitHub PR with:
      - Clear title referencing the Jira ticket
      - Description focused solely on the specific fix applied
