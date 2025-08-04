@@ -190,8 +190,8 @@ def clean_agent_response(response: Union[str, Dict, Any]) -> str:
     cleaned = re.sub(r"\n\s*\n\s*\n", "\n\n", cleaned)
 
     # Ensure response isn't too long for Slack
-    if len(cleaned) > 2500:
-        cleaned = cleaned[:2400] + "\n\n... (truncated)"
+    # if len(cleaned) > 2500:
+    #     cleaned = cleaned[:2400] + "\n\n... (truncated)"
 
     return cleaned.strip()
 

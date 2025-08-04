@@ -58,6 +58,7 @@ This architecture represents a comprehensive cloud engineer agent solution built
                                                                          
 ```
 ![Architecture Diagram](generated-diagrams/cloud-engineer-architecture.png)
+Generated using aws-diagram MCP server.
 
 ## System Context
 
@@ -85,8 +86,7 @@ The system behavior is defined in `agent/system_prompt.md`, which outlines the a
 
 4. **External Service Integration**:
    - **MCP Proxy (ALB)**: Load-balanced access to containerized MCP servers running on Fargate
-   - **Amazon Bedrock**: Claude model for AI processing, Knowledge Base for RAG, and Guardrails for content safety
-   - **Cost Metrics**: Integration with Cost Explorer and CloudWatch Dashboard for cost monitoring
+   - **Amazon Bedrock**: Claude model for AI processing and Guardrails for content safety
    - **External APIs**: GitHub API, Atlassian API, and AWS Documentation services
 
 5. **Response Processing**: Lambda aggregates responses from all integrated services and tools
@@ -97,10 +97,13 @@ The system behavior is defined in `agent/system_prompt.md`, which outlines the a
 
 ### MCP Servers
 - **AWS Documentation MCP Server**: Provides real-time access to AWS documentation, best practices, and technical guides
-- **AWS Cost Explorer MCP Server**: Delivers cost analysis, billing insights, and optimization recommendations
+- **AWS CDK MCP Server**: Offers CDK-specific operations, template generation, and infrastructure as code guidance
+- **GitHub MCP Server**: Enables repository management, pull request operations, and version control integration
+- **Atlassian MCP Server**: Provides Jira integration for issue tracking, project management, and workflow automation
 
 ### Strands Tools
 - **use_aws Tool**: Enables direct interaction with AWS services for operational tasks, resource management, and configuration changes
+- **memory**: Store user and agent memories across agent runs to provide personalized experiences with both Mem0 and Amazon Bedrock Knowledge Bases
 
 ### Amazon Bedrock Services
 - **Claude Model**: Advanced language model for understanding and generating responses
@@ -135,9 +138,7 @@ The system behavior is defined in `agent/system_prompt.md`, which outlines the a
 
 ## Security & Compliance
 
-- API Gateway security and rate limiting
 - Lambda execution environment isolation
-- MCP server secure communication protocols
 - Bedrock Guardrails for content safety
 - AWS IAM for granular access control
 - Audit logging for all operations
@@ -199,6 +200,12 @@ cloud-engineer/
 
 - Auto-scaling Lambda functions
 - Distributed MCP server architecture
-- Cached documentation and cost data
-- Optimized Bedrock service calls
-- Efficient knowledge base queries
+
+## Future Improvements
+
+The following features are planned for future implementation:
+
+- **Bedrock Knowledge Base**: RAG implementation with internal knowledge repository for enhanced contextual responses
+- **Memory Strands Tool**: Advanced context retention and conversation history management within AWS Lambda
+- **CloudWatch Dashboard**: Comprehensive cost explorer integration for inference cost monitoring and visualization
+- **API Security Implementation**: Advanced security measures and authentication

@@ -5,7 +5,6 @@ This demo showcases direct AWS service interactions, resource management, and in
 ## Overview
 
 The Cloud Engineer Agent provides comprehensive AWS operations capabilities, enabling users to:
-- Launch and manage EC2 instances
 - Execute AWS CLI commands directly
 - Create repositories and deploy CloudFormation templates
 - Perform infrastructure operations through natural language queries
@@ -38,8 +37,6 @@ The Cloud Engineer Agent provides comprehensive AWS operations capabilities, ena
 
 ### EC2 Management
 - Instance launching with custom configurations
-- Security group and key pair management
-- Instance monitoring and status tracking
 
 ### Infrastructure Deployment
 - CloudFormation stack creation and management
