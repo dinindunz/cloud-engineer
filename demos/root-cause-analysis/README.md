@@ -1,46 +1,44 @@
-### Root Cause Analysis of AWS CloudFormation Deployment Failure
+# Root Cause Analysis Demo
 
-This document outlines the investigation and findings of a CloudFormation deployment failure, despite the presence of an Admin role. The analysis was performed by a "CloudAgent" and the process is documented in a series of screenshots.
+This demo showcases the Cloud Engineer Agent's systematic approach to investigating and diagnosing complex AWS infrastructure issues, specifically a CloudFormation deployment failure caused by organizational policies.
 
-#### Initial Problem Statement
-The CloudAgent was tasked with investigating why a CloudFormation deployment was failing, even though the execution role had `Admin` permissions. The initial thought was to investigate CloudFormation service limits and permissions.
+## Investigation Overview
 
-- **![Initial Problem and Analysis](01_cfn_api_access_issue.png)**
-  - The agent begins by stating its intention to investigate the CloudFormation API deployment failure.
-  - It plans to check service limits, permissions, and try a diagnostic approach.
-  - It successfully finds credentials in environment variables and notes the CloudFormation limits appear fine.
-  - The agent then proceeds to check the IAM permissions and policies attached to the Lambda execution role.
+The Cloud Engineer Agent methodically investigates a CloudFormation deployment failure by:
+1. Analyzing the initial problem and checking service limits
+2. Examining IAM permissions and policies
+3. Testing different CloudFormation operations to isolate the issue
+4. Identifying AWS Organizations Service Control Policies as the root cause
+5. Providing comprehensive findings and actionable solutions
 
-#### Discovering the Root Cause
-As the investigation progressed, the agent discovered that the issue was not with the IAM role's permissions but with a higher-level organizational policy.
+## Demo Screenshots
 
-- **![Discovering SCP Restrictions](02_analysis.png)**
-  - The agent notes a pattern where operations are being cancelled by the user, suggesting a policy is blocking CloudFormation stack creation.
-  - It verifies that the account is part of an AWS Organization with Service Control Policies (SCPs) enabled.
-  - The agent's attempts to create a stack with more verbose error handling lead to an `AccessDeniedException` and `ClientError`.
+### 1. Initial Problem and Analysis
+![Initial Problem and Analysis](01_cfn_api_access_issue.png)
+*Agent begins investigation of CloudFormation API deployment failure, checking service limits and IAM permissions*
 
-- **![Further Analysis and Read-only Operations](03_analysis.png)**
-  - The agent continues its analysis by checking if any read-only CloudFormation operations work, which could help narrow down the specific restriction.
-  - It attempts to create a change set instead of a stack, but this also fails.
-  - The agent successfully performs read-only operations, confirming it has read access to CloudFormation, which provides a clearer picture of the issue.
+### 2. Discovering SCP Restrictions
+![Discovering SCP Restrictions](02_analysis.png)
+*Agent identifies pattern of operations being cancelled and discovers AWS Organization with Service Control Policies*
 
-#### Final Findings and Solution
-The investigation concludes that AWS Organizations Service Control Policies (SCPs) are the root cause, overriding the IAM permissions granted to the Admin role.
+### 3. Further Analysis and Read-only Operations
+![Further Analysis and Read-only Operations](03_analysis.png)
+*Agent tests read-only CloudFormation operations to narrow down specific restrictions and confirm access patterns*
 
-- **![Investigation Results](04_analysis.png)**
-  - The agent clearly states the root cause: AWS Organizations Service Control Policies (SCPs) are blocking CloudFormation stack creation operations.
-  - Evidence includes:
-    - The account is part of an AWS Organization with SCPs enabled.
-    - CloudFormation `WRITE` operations (`create_stack`, `create_change_set`) are blocked.
-    - The error pattern is typical for an SCP denial, where the operation is "canceled by user."
-    - While the Lambda Execution Role has Admin permissions, the SCPs take precedence.
+### 4. Investigation Results
+![Investigation Results](04_analysis.png)
+*Agent clearly identifies AWS Organizations Service Control Policies as the root cause blocking CloudFormation operations*
 
-- **![Full Report and Solutions](05_investigation_results.png)**
-  - The final report from the CloudAgent is provided.
-  - It defines SCPs as "guardrails" that set the maximum permissions for accounts and can override IAM permissions.
-  - The report explains why other operations, like basic EC2 actions, might still work, as SCPs are often used to enforce controlled deployment methods.
-  - It proposes several solutions:
-    - Contacting the AWS Organization Administrator to review and modify the SCPs.
-    - Temporarily allowing CloudFormation operations.
-    - Adding an exception for the specific use case.
-    - Suggesting alternative deployment methods, such as using AWS CDK, if it's allowed.
+### 5. Full Report and Solutions
+![Full Report and Solutions](05_investigation_results.png)
+*Comprehensive final report with detailed explanation of SCPs and multiple solution approaches*
+
+## Key Features Demonstrated
+
+- **Systematic Investigation**: Methodical approach to diagnosing complex infrastructure issues
+- **Multi-layer Analysis**: Examination of service limits, IAM permissions, and organizational policies
+- **Pattern Recognition**: Identification of specific error patterns indicating SCP restrictions
+- **Root Cause Identification**: Clear determination that SCPs override IAM Admin permissions
+- **Solution-Oriented Reporting**: Comprehensive recommendations including alternative deployment methods
+- **Evidence-Based Conclusions**: Detailed documentation of findings with supporting evidence
+- **Operational Context**: Understanding of AWS Organizations hierarchy and policy precedence
