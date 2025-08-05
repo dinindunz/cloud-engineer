@@ -74,7 +74,7 @@ The system behavior is defined in `agent/system_prompt.md`, which outlines the a
    - Users interact through Slack with cloud engineering queries
    - CloudWatch Logs trigger automated error response workflows
 
-2. **API Gateway**: Slack webhook and CloudWatch events trigger AWS API Gateway
+2. **API Gateway**: Slack webhook sends a request to AWS API Gateway
 
 3. **Lambda Processing**: AWS Strands-powered Lambda function processes requests using integrated tools:
    - **aws_doc_tools**: Access to AWS documentation and best practices
@@ -84,7 +84,7 @@ The system behavior is defined in `agent/system_prompt.md`, which outlines the a
    - **use_aws**: Direct AWS service interactions and resource management
    - **memory**: Context retention and conversation history
 
-4. **External Service Integration**:
+4. **Service Integration**:
    - **MCP Proxy (ALB)**: Load-balanced access to containerized MCP servers running on Fargate
    - **Amazon Bedrock**: Claude model for AI processing and Guardrails for content safety
    - **External APIs**: GitHub API, Atlassian API, and AWS Documentation services
@@ -169,7 +169,7 @@ Achieving precise, surgical code changes required extensive iteration and refine
 ### Multi-Agent Architecture Evaluation
 Initial exploration of a multi-agent architecture revealed significant limitations for precision-focused tasks:
 
-- **Context Fragmentation**: Specialized agents (orchestrator, PR-agent, knowledge-base-agent, operations-agent, jira-agent) only saw partial context, leading to suboptimal decisions
+- **Context Fragmentation**: Specialized agents (orchestrator, pr-agent, knowledge-base-agent, operations-agent, jira-agent) only saw partial context, leading to suboptimal decisions
 - **Over-Specialization**: Individual agents felt compelled to "add value" within their domain, resulting in broader changes than necessary
 - **Communication Overhead**: Information loss and transformation occurred during handoffs between agents
 - **Competing Objectives**: Different agents had conflicting approaches to problem-solving

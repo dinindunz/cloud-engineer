@@ -4,6 +4,25 @@ This demo showcases the complete automated error response workflow, from CloudWa
 
 ## Workflow Overview
 
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  1. Error       │───▶│  2. Lambda      │───▶│  3. MCP         │
+│  Simulation     │    │  Agent Invoke   │    │  Initialization │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                        │
+                                                        ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  6. Repository  │◀───│  5. Jira Issue  │◀───│  4. Root Cause  │
+│  Analysis       │    │  Creation       │    │  Analysis       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                                              
+         ▼                                              
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  7. Bug         │───▶│  8. PR          │───▶│  9. Slack       │
+│  Identification │    │  Generation     │    │  Response       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
 The Cloud Engineer Agent automatically responds to CloudWatch log errors by:
 1. Analyzing the error and determining severity
 2. Creating a Jira ticket for tracking
