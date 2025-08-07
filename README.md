@@ -4,11 +4,9 @@
 This architecture represents a comprehensive cloud engineer agent solution built on AWS, using Slack as the user interface, powered by Amazon Bedrock's Claude model, and enhanced with MCP servers and Strands tools for extended functionality.
 
 ## Architecture Components
-
-```
-┌─────────────┐    ┌─────────────────┐    ┌─────────────────────────────────────────────────────┐
-│    Slack    │───▶│   API Gateway   │───▶│                    Lambda Function                  │
-│  Interface  │    │                 │    │                     (AWS Strands)                   │
+┌─────────────┐    ┌─────────────────┐    ┌─────────────────────────────────────────────────────┐         ┌─────────────────┐
+│    Slack    │───▶│   API Gateway   │───▶│                    Lambda Function                  │────────▶│    S3 Vectors?  │  
+│  Interface  │    │                 │    │                     (AWS Strands)                   │         └─────────────────┘
 └─────────────┘    └─────────────────┘    │                                                     │
                                           │ ┌───────────────┐ ┌───────────────┐ ┌─────────────┐ │
                    ┌─────────────────┐    │ │ aws_doc_tools │ │ aws_cdk_tools | │ github_tools│ │
@@ -26,7 +24,7 @@ This architecture represents a comprehensive cloud engineer agent solution built
                   │ ┌─────────────┐ │            │                                  │    │                                      │  
                   │ │ Forgate     │ │            │ ┌─────────────┐  ┌─────────────┐ │    │  ┌───────────────┐ ┌───────────────┐ │
                   │ │ Task        │ │            │ │   Model     │  │  Knowledge  │ │    │  │ Cost Explorer │ │  CloudWatch   │ │
-                  │ └─────────────┘ │            │ └─────────────┘  │  Base (RAG) │ │    │  └───────────────┘ │  Dashboard    │ │
+                  │ └─────────────┘ │            │ └─────────────┘  │  Base (RAG)?│ │    │  └───────────────┘ │  Dashboard    │ │
                   └─────────────────┘            │                  └─────────────┘ │    │                    └───────────────┘ │
                             │                    │ ┌─────────────┐                  │    └──────────────────────────────────────┘  
                             │                    │ │ Guardrails  │                  │       
@@ -36,8 +34,8 @@ This architecture represents a comprehensive cloud engineer agent solution built
     │                   MCP Servers                     │             
     │                                                   │         ┌─────────────────┐           
     │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐   │         │    External     │           
-    │ │AWS Docs MCP │ │ Atlassian   │ │  AWS CDK    │   │         │    Services     │         
-    │ │Srv (ALB)    │ │MCP Srv (ALB)│ │MCP Srv (ALB)│   │         │                 │           
+    │ │AWS Docs MCP │ │  Atlassian  │ │   AWS CDK   │   │         │    Services     │         
+    │ │     Srv     │ │   MCP Srv   │ │   MCP Srv   │   │         │                 │           
     │ │             │ │             │ │             │   │         │ ┌─────────────┐ │                              
     │ │ ┌─────────┐ │ │ ┌─────────┐ │ │ ┌─────────┐ │   │         │ │   GitHub    │ │                              
     │ │ │Fargate  │ │ │ │Fargate  │ │ │ │Fargate  │ │   │         │ │    API      │ │        
@@ -46,7 +44,7 @@ This architecture represents a comprehensive cloud engineer agent solution built
     │ └─────────────┘ └─────────────┘ └─────────────┘   │         │ ┌─────────────┐ │       
     │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐   │         │ │  Atlassian  │ │        
     │ │   GitHub    │ │             │ │             │   │         │ │    API      │ │      
-    │ │MCP Srv (ALB)│ │             │ │             │   │         │ └─────────────┘ │     
+    │ │  MCP Srv    │ │             │ │             │   │         │ └─────────────┘ │     
     │ │             │ │             │ │             │   │         │                 │ 
     │ │ ┌─────────┐ │ │             │ │             │   │         │ ┌─────────────┐ │                   
     │ │ │Fargate  │ │ │             │ │             │   │         │ │    AWS      │ │
@@ -249,7 +247,7 @@ cloud-engineer/
 
 The following features are planned for future implementation:
 
-- **Bedrock Knowledge Base**: RAG implementation with internal knowledge repository for enhanced contextual responses
+- **Bedrock Knowledge Base or S3 Vector**: RAG implementation with internal knowledge repository for enhanced contextual responses
 - **Memory Strands Tool**: Advanced context retention and conversation history management within AWS Lambda
 - **CloudWatch Dashboard**: Comprehensive cost explorer integration for inference cost monitoring and visualization
 - **API Security Implementation**: Advanced security measures and authentication

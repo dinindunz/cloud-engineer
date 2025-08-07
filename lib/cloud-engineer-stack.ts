@@ -6,7 +6,8 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import * as assets from 'aws-cdk-lib/aws-ecr-assets'; 
+import * as assets from 'aws-cdk-lib/aws-ecr-assets';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 import * as path from 'path';
 
@@ -135,6 +136,18 @@ export class CloudEngineerStack extends cdk.Stack {
       unhealthyThresholdCount: 3,
     });
 
+    // Create DynamoDB table for duplicate message detection
+    const duplicateTable = new dynamodb.Table(this, 'SlackMessageDeduplication', {
+      tableName: 'slack-message-deduplication',
+      partitionKey: {
+        name: 'message_id',
+        type: dynamodb.AttributeType.STRING,
+      },
+      timeToLiveAttribute: 'ttl',
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     // Create IAM role for Lambda function
     const lambdaRole = new iam.Role(this, 'CloudEngineerLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
@@ -144,6 +157,9 @@ export class CloudEngineerStack extends cdk.Stack {
         iam.ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess'),
       ],
     });
+
+    // Grant Lambda access to DynamoDB table
+    duplicateTable.grantReadWriteData(lambdaRole);
     
     // Read MCP server configuration
     let config = require(path.join(__dirname, '../mcp-proxy/mcp-servers.json'));
@@ -162,7 +178,6 @@ export class CloudEngineerStack extends cdk.Stack {
       code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../agent'), {
         platform: assets.Platform.LINUX_AMD64,
       }),
-      reservedConcurrentExecutions: 1,
       role: lambdaRole,
       timeout: cdk.Duration.minutes(15),
       memorySize: 512,
@@ -172,6 +187,7 @@ export class CloudEngineerStack extends cdk.Stack {
         SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET || '',
         SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN || '',
         SLACK_BOT_USER_ID: process.env.SLACK_BOT_USER_ID || '',
+        DYNAMODB_TABLE_NAME: duplicateTable.tableName,
       },
       description: 'AWS Cloud Engineer for Slack integration',
     });
