@@ -4,12 +4,12 @@
 This architecture represents a comprehensive cloud engineer agent solution built on AWS, using Slack as the user interface, powered by Amazon Bedrock's Claude model, and enhanced with MCP servers and Strands tools for extended functionality.
 
 ## Architecture Components
-┌─────────────┐    ┌─────────────────┐    ┌─────────────────────────────────────────────────────┐         ┌─────────────────┐
-│    Slack    │───▶│   API Gateway   │───▶│                    Lambda Function                  │────────▶│    S3 Vectors?  │  
-│  Interface  │    │                 │    │                     (AWS Strands)                   │         └─────────────────┘
-└─────────────┘    └─────────────────┘    │                                                     │
-                                          │ ┌───────────────┐ ┌───────────────┐ ┌─────────────┐ │
-                   ┌─────────────────┐    │ │ aws_doc_tools │ │ aws_cdk_tools | │ github_tools│ │
+┌─────────────┐    ┌─────────────────┐    ┌─────────────────────────────────────────────────────┐         ┌────────────────┐
+│    Slack    │───▶│   API Gateway   │───▶│                    Lambda Function                  │────────▶│   S3 Vectors?  │  
+│  Interface  │    │                 │    │                     (AWS Strands)                   │         └────────────────┘
+└─────────────┘    └─────────────────┘    │                                                     │         ┌────────────────┐
+                                          │ ┌───────────────┐ ┌───────────────┐ ┌─────────────┐ │────────▶│    DynamoDB    │  
+                   ┌─────────────────┐    │ │ aws_doc_tools │ │ aws_cdk_tools | │ github_tools│ │         └────────────────┘
                    │ CloudWatch Logs │───▶│ └───────────────┘ └───────────────┘ └─────────────┘ │
                    └─────────────────┘    │ ┌────────────────┐ ┌──────────────┐ ┌─────────────┐ │
                                           │ │ atlassian_tools│ │   use_aws    │ │    memory   │ │
@@ -107,6 +107,14 @@ The system behavior is defined in `agent/system_prompt.md`, which outlines the a
 - **Claude Model**: Advanced language model for understanding and generating responses
 - **Guardrails**: Content filtering and safety validation
 - **Knowledge Base**: RAG implementation with internal knowledge repository
+
+### DynamoDB Integration
+- **Message Deduplication Table**: Prevents duplicate Slack message processing across Lambda executions
+  - **Partition Key**: `message_id` (MD5 hash of timestamp, user, channel, and message text)
+  - **TTL**: 1-hour automatic cleanup of processed message records
+  - **Atomic Operations**: Conditional writes ensure race-condition-free duplicate detection
+  - **Cross-Lambda Persistence**: Maintains deduplication state across multiple Lambda invocations
+  - **Billing**: Pay-per-request pricing model for cost-effective operation
 
 ## Enhanced Capabilities
 
