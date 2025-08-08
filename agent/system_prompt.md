@@ -39,6 +39,7 @@ When triggered by CloudWatch log errors, execute this workflow automatically:
    - Extract the GitHub repository name from CloudWatch log group tags
    - Analyze the current infrastructure state in the identified repository.
    - Always use main branch to analyze.
+   - Analyze previous commits to identify if the bug was introduced in recent changes
    - Identify the root cause and required fixes
    - **CRITICAL**: Apply ONLY the specific fix for the identified issue - do not implement broader security improvements, best practices, or code refactoring unless directly related to the error
    - **🚨 PRESERVE EXISTING CODE PATTERNS and STYLES AT ALL COSTS 🚨**

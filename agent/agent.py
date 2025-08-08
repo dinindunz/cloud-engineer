@@ -7,9 +7,14 @@ import logging
 import gzip
 import base64
 import boto3
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Set
 from cloud_engineer import execute_custom_task
+from botocore.exceptions import ClientError
+
+# Initialize DynamoDB client for duplicate detection
+dynamodb = boto3.resource('dynamodb')
+DUPLICATE_TABLE_NAME = os.environ.get('DYNAMODB_TABLE_NAME', 'slack-message-deduplication')
 
 # Configure logging for AWS Lambda
 logger = logging.getLogger()
@@ -45,14 +50,49 @@ def generate_message_id(event_data: Dict[str, Any]) -> str:
 
 
 def is_duplicate_message(message_id: str) -> bool:
-    """Check if we've already processed this message"""
+    """Check if we've already processed this message using DynamoDB for cross-execution deduplication"""
     global processed_messages
 
+    # First check in-memory cache for this execution
     if message_id in processed_messages:
+        logger.info(f"Message {message_id} already processed in this execution")
         return True
 
-    processed_messages.add(message_id)
-    return False
+    try:
+        # Try to put the message ID in DynamoDB with a condition that it doesn't exist
+        table = dynamodb.Table(DUPLICATE_TABLE_NAME)
+        
+        # Use conditional put to ensure atomicity
+        table.put_item(
+            Item={
+                'message_id': message_id,
+                'timestamp': int(time.time()),
+                'ttl': int(time.time()) + 3600  # TTL of 1 hour
+            },
+            ConditionExpression='attribute_not_exists(message_id)'
+        )
+        
+        # If we get here, the item was successfully added (not a duplicate)
+        processed_messages.add(message_id)
+        logger.info(f"Message {message_id} is new, processing...")
+        return False
+        
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
+            # Item already exists, this is a duplicate
+            logger.info(f"Message {message_id} already processed by another execution")
+            return True
+        else:
+            # Some other error occurred, log it but don't block processing
+            logger.error(f"Error checking for duplicate message {message_id}: {e}")
+            # Add to in-memory cache and allow processing to continue
+            processed_messages.add(message_id)
+            return False
+    except Exception as e:
+        # Any other exception, log and allow processing
+        logger.error(f"Unexpected error in duplicate detection for {message_id}: {e}")
+        processed_messages.add(message_id)
+        return False
 
 
 def should_rate_limit() -> bool:
@@ -330,22 +370,38 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 if text and is_bot_mentioned(text, bot_user_id):
                     logger.info(f"AWS bot mentioned by {audit_log['userEmail']}!")
 
-                    # Execute the AWS Cloud Engineer agent with context
-                    agent_result = execute_aws_agent(text)
+                    # Respond to Slack immediately to prevent retries
+                    immediate_response = {
+                        "statusCode": 200,
+                        "body": json.dumps({"message": "Processing your request..."})
+                    }
+                    
+                    # Process the agent request asynchronously
+                    try:
+                        # Execute the AWS Cloud Engineer agent with context
+                        agent_result = execute_aws_agent(text)
 
-                    # Format and post response to Slack
-                    slack_response = format_slack_response(agent_result)
-                    post_result = post_slack_message(
-                        channel, slack_response, bot_token, thread_ts
-                    )
-
-                    # Log the result
-                    if post_result.get("ok"):
-                        logger.info("AWS Cloud Engineer response posted successfully")
-                    else:
-                        logger.error(
-                            f"Failed to post AWS Cloud Engineer response: {post_result.get('error', 'Unknown error')}"
+                        # Format and post response to Slack
+                        slack_response = format_slack_response(agent_result)
+                        post_result = post_slack_message(
+                            channel, slack_response, bot_token, thread_ts
                         )
+
+                        # Log the result
+                        if post_result.get("ok"):
+                            logger.info("AWS Cloud Engineer response posted successfully")
+                        else:
+                            logger.error(
+                                f"Failed to post AWS Cloud Engineer response: {post_result.get('error', 'Unknown error')}"
+                            )
+                    except Exception as agent_error:
+                        logger.error(f"Error in async agent processing: {agent_error}")
+                        # Post error message to Slack
+                        error_response = f"❌ **AWS Cloud Engineer Error:** {str(agent_error)}"
+                        post_slack_message(channel, error_response, bot_token, thread_ts)
+                    
+                    # Return immediately to prevent Slack retries
+                    return immediate_response
 
             except Exception as error:
                 logger.error(f"Error processing message: {error}")
