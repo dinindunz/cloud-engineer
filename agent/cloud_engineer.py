@@ -3,6 +3,7 @@ import logging
 from strands import Agent
 from strands.tools.mcp import MCPClient
 from strands.models import BedrockModel
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from mcp import StdioServerParameters, stdio_client
 from strands_tools import use_aws
 from typing import Dict, List, Optional, Any, Union
@@ -227,22 +228,18 @@ def health_check() -> Dict[str, Any]:
         "bedrock_model_ready": bedrock_model is not None,
     }
 
+# Create an AgentCore app
+app = BedrockAgentCoreApp()
+
+# Specify the entry point function invoking the agent
+@app.entrypoint
+def invoke(payload):
+    """Handler for agent invocation"""
+    user_message = payload.get(
+        "prompt", "No prompt found in input, please guide customer to create a json payload with prompt key"
+    )
+    response = execute_custom_task(user_message)
+    return response.message['content'][0]['text']
 
 if __name__ == "__main__":
-    # Example usage
-    logger.info("Initializing Cloud Engineer...")
-    logger.info(f"Health check: {health_check()}")
-
-    # Test with different tasks
-    test_cases = [
-        "List all CloudFormation stacks",
-        "Show me EC2 instances",
-        "What S3 buckets do I have?",
-    ]
-
-    for task in test_cases:
-        logger.info(f"Testing: {task}")
-        result = execute_custom_task(task)
-        logger.info(f"Result: {result}")
-
-    logger.info(f"Final health check: {health_check()}")
+    app.run()

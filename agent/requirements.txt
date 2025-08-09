@@ -6,6 +6,7 @@ pygments
 setuptools
 strands-agents
 strands-agents-tools
+bedrock-agentcore
 urllib3
 uv
 wheel

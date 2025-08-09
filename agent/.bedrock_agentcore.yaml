@@ -1,0 +1,31 @@
+default_agent: strands_agentcore
+agents:
+  strands_agentcore:
+    name: strands_agentcore
+    entrypoint: cloud_engineer.py
+    platform: linux/amd64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKRuntime-ap-southeast-2-298ab5265a
+      execution_role_auto_create: false
+      account: '354334841216'
+      region: ap-southeast-2
+      ecr_repository: 354334841216.dkr.ecr.ap-southeast-2.amazonaws.com/bedrock-agentcore
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: strands_agentcore-kUVX6pCfod
+      agent_arn: arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:runtime/strands_agentcore-kUVX6pCfod
+      agent_session_id: e5214394-09c8-4395-b7ad-ebaac43f362c
+    codebuild:
+      project_name: bedrock-agentcore-strands_agentcore-builder
+      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKCodeBuild-ap-southeast-2-298ab5265a
+      source_bucket: bedrock-agentcore-codebuild-sources-354334841216-ap-southeast-2
+    authorizer_configuration: null
+    oauth_configuration:
+      workload_name: workload-e696d791

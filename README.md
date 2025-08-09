@@ -4,6 +4,8 @@
 This architecture represents a comprehensive cloud engineer agent solution built on AWS, using Slack as the user interface, powered by Amazon Bedrock's Claude model, and enhanced with MCP servers and Strands tools for extended functionality.
 
 ## Architecture Components
+
+```
 ┌─────────────┐    ┌─────────────────┐    ┌─────────────────────────────────────────────────────┐         ┌────────────────┐
 │    Slack    │───▶│   API Gateway   │───▶│                    Lambda Function                  │────────▶│   S3 Vectors?  │  
 │  Interface  │    │                 │    │                     (AWS Strands)                   │         └────────────────┘
@@ -51,10 +53,10 @@ This architecture represents a comprehensive cloud engineer agent solution built
     │ │ │Task     │ │ │             │ │             │   │         │ │Documentation│ │        
     │ │ └─────────┘ │ │             │ │             │   │         │ │             │ │        
     │ └─────────────┘ └─────────────┘ └─────────────┘   │         │ └─────────────┘ │         
-    └───────────────────────────────────────────────────┘         └─────────────────┘    
-▼                                                                      
-                                                                         
+    └───────────────────────────────────────────────────┘         └─────────────────┘
+
 ```
+
 ![Architecture Diagram](generated-diagrams/cloud-engineer-architecture.png)
 Generated using aws-diagram MCP server.
 

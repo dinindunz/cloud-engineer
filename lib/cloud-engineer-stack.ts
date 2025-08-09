@@ -177,6 +177,7 @@ export class CloudEngineerStack extends cdk.Stack {
     const cloudEngineerFunction = new lambda.DockerImageFunction(this, 'CloudEngineerFunction', {
       code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../agent'), {
         platform: assets.Platform.LINUX_AMD64,
+        file: 'Dockerfile.lambda',
       }),
       role: lambdaRole,
       timeout: cdk.Duration.minutes(15),
