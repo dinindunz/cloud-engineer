@@ -37,54 +37,6 @@ export class CloudEngineerStack extends cdk.Stack {
         clusterName: 'mcp-proxy-cluster',
       });
 
-    // Load Balanced Fargate MCP Proxy with CDK Docker build
-    const mcpProxyService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'McpProxyService', {
-      cluster,
-      memoryLimitMiB: 1024,
-      cpu: 512,
-      enableExecuteCommand: true,
-      taskImageOptions: {
-        image: ecs.ContainerImage.fromAsset(path.join(__dirname, '../mcp-proxy'), {
-          file: 'Dockerfile',
-          platform: assets.Platform.LINUX_AMD64,
-        }),
-        containerPort: 8096,
-        environment: {
-          GITHUB_PERSONAL_ACCESS_TOKEN: process.env.GITHUB_PERSONAL_ACCESS_TOKEN || '',
-        },
-        logDriver: ecs.LogDrivers.awsLogs({
-          streamPrefix: 'mcp-proxy',
-          logGroup: new logs.LogGroup(this, 'McpProxyLogGroup', {
-            logGroupName: '/ecs/mcp-proxy',
-            retention: logs.RetentionDays.ONE_WEEK,
-            removalPolicy: cdk.RemovalPolicy.DESTROY,
-          }),
-        }),
-      },
-      containerCpu: 256,
-      containerMemoryLimitMiB: 512,
-      minHealthyPercent: 100,
-      listenerPort: 80,
-      assignPublicIp: true,
-    });
-
-    // Allow traffic on port 8096
-    mcpProxyService.service.connections.allowFromAnyIpv4(
-      ec2.Port.tcp(8096),
-      'Allow MCP Proxy traffic'
-    );
-
-    // Configure health check for MCP Proxy
-    mcpProxyService.targetGroup.configureHealthCheck({
-      path: "/",
-      port: "8096",
-      healthyHttpCodes: "200,404", // 404 might is ok if no health endpoint
-      interval: cdk.Duration.seconds(30),
-      timeout: cdk.Duration.seconds(5),
-      healthyThresholdCount: 2,
-      unhealthyThresholdCount: 3,
-    });
-    
     // Load Balanced Fargate MCP Atlassian with CDK Docker build
     const mcpAtlassian = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'McpAtlassian', {
       cluster,
@@ -135,6 +87,61 @@ export class CloudEngineerStack extends cdk.Stack {
       healthyThresholdCount: 2,
       unhealthyThresholdCount: 3,
     });
+
+    // Load Balanced Fargate MCP Proxy with CDK Docker build
+    const mcpProxyService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'McpProxyService', {
+      cluster,
+      memoryLimitMiB: 1024,
+      cpu: 512,
+      enableExecuteCommand: true,
+      taskImageOptions: {
+        image: ecs.ContainerImage.fromAsset(path.join(__dirname, '../mcp-proxy'), {
+          file: 'Dockerfile',
+          platform: assets.Platform.LINUX_AMD64,
+        }),
+        containerPort: 8096,
+        environment: {
+          ATLASSIAN_MCP_URL: `http://${mcpAtlassian.loadBalancer.loadBalancerDnsName}/sse`,
+          GITHUB_PERSONAL_ACCESS_TOKEN: process.env.GITHUB_PERSONAL_ACCESS_TOKEN || '',
+        },
+        logDriver: ecs.LogDrivers.awsLogs({
+          streamPrefix: 'mcp-proxy',
+          logGroup: new logs.LogGroup(this, 'McpProxyLogGroup', {
+            logGroupName: '/ecs/mcp-proxy',
+            retention: logs.RetentionDays.ONE_WEEK,
+            removalPolicy: cdk.RemovalPolicy.DESTROY,
+          }),
+        }),
+      },
+      containerCpu: 256,
+      containerMemoryLimitMiB: 512,
+      minHealthyPercent: 100,
+      listenerPort: 80,
+      assignPublicIp: true,
+    });
+
+    mcpProxyService.node.addDependency(mcpAtlassian);
+
+    // Allow traffic on port 8096
+    mcpProxyService.service.connections.allowFromAnyIpv4(
+      ec2.Port.tcp(8096),
+      'Allow MCP Proxy traffic'
+    );
+
+    // Configure health check for MCP Proxy
+    mcpProxyService.targetGroup.configureHealthCheck({
+      path: "/",
+      port: "8096",
+      healthyHttpCodes: "200,404", // 404 might is ok if no health endpoint
+      interval: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.seconds(5),
+      healthyThresholdCount: 2,
+      unhealthyThresholdCount: 3,
+    });
+
+    mcpProxyService.taskDefinition.taskRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess')
+    );    
 
     // Create DynamoDB table for duplicate message detection
     const duplicateTable = new dynamodb.Table(this, 'SlackMessageDeduplication', {
