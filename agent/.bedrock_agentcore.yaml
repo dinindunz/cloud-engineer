@@ -21,7 +21,7 @@ agents:
     bedrock_agentcore:
       agent_id: strands_agentcore-kUVX6pCfod
       agent_arn: arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:runtime/strands_agentcore-kUVX6pCfod
-      agent_session_id: e5214394-09c8-4395-b7ad-ebaac43f362c
+      agent_session_id: afc3242b-1fa0-4cf4-a738-c4c90dbe1e54
     codebuild:
       project_name: bedrock-agentcore-strands_agentcore-builder
       execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKCodeBuild-ap-southeast-2-298ab5265a

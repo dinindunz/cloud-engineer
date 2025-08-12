@@ -1,0 +1,30 @@
+default_agent: eks_agent
+agents:
+  eks_agent:
+    name: eks_agent
+    entrypoint: eks_agent.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKRuntime-ap-southeast-2-5123cd8fcb
+      execution_role_auto_create: false
+      account: '354334841216'
+      region: ap-southeast-2
+      ecr_repository: 354334841216.dkr.ecr.ap-southeast-2.amazonaws.com/bedrock-agentcore-eks_agent
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: eks_agent-iHdqj18mPu
+      agent_arn: arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:runtime/eks_agent-iHdqj18mPu
+      agent_session_id: 308592b9-94a3-4af9-b57c-70d5d74a0378
+    codebuild:
+      project_name: bedrock-agentcore-eks_agent-builder
+      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKCodeBuild-ap-southeast-2-5123cd8fcb
+      source_bucket: bedrock-agentcore-codebuild-sources-354334841216-ap-southeast-2
+    authorizer_configuration: null
+    oauth_configuration: null

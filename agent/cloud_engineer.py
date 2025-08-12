@@ -26,7 +26,8 @@ mcp_initialized = False
 bedrock_model = None
 
 # Enhanced system prompt for the agent
-system_prompt = pathlib.Path("system_prompt.md").read_text()
+system_prompt = pathlib.Path(__file__).parent / "system_prompt.md"
+system_prompt = system_prompt.read_text()
 
 
 def create_bedrock_model() -> BedrockModel:

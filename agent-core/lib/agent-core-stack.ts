@@ -31,110 +31,118 @@ export class AgentCoreStack extends cdk.Stack {
     );
 
     // Create the IAM role with the trust policy
-    const role = new iam.Role(this, "MyBedrockAgentRole", {
-      assumedBy,
-      roleName: "MyBedrockAgentRole",
+    // const role = new iam.Role(this, "MyBedrockAgentRole", {
+    //   assumedBy,
+    //   roleName: "MyBedrockAgentRole",
+    // });
+
+    const role = new iam.Role(this, 'MyBedrockAgentRole', {
+      assumedBy: new iam.ServicePrincipal('bedrock-agentcore.amazonaws.com'),
+      description: 'IAM role for Cloud Engineer Lambda function',
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('AdministratorAccess'),
+      ],
     });
 
-    role.attachInlinePolicy(new iam.Policy(this, 'MyConvertedPolicy', {
-      document: new iam.PolicyDocument({
-        statements: [
-          new iam.PolicyStatement({
-            sid: 'ECRImageAccess',
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'ecr:BatchGetImage',
-              'ecr:GetDownloadUrlForLayer'
-            ],
-            resources: [
-              `arn:aws:ecr:us-east-1:${this.account}:repository/*`
-            ]
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'logs:DescribeLogStreams',
-              'logs:CreateLogGroup'
-            ],
-            resources: [
-              `arn:aws:logs:us-east-1:${this.account}:log-group:/aws/bedrock-agentcore/runtimes/*`
-            ]
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'logs:DescribeLogGroups'
-            ],
-            resources: [
-              `arn:aws:logs:us-east-1:${this.account}:log-group:*`
-            ]
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'logs:CreateLogStream',
-              'logs:PutLogEvents'
-            ],
-            resources: [
-              `arn:aws:logs:us-east-1:${this.account}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*`
-            ]
-          }),
-          new iam.PolicyStatement({
-            sid: 'ECRTokenAccess',
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'ecr:GetAuthorizationToken'
-            ],
-            resources: ['*']
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'xray:PutTraceSegments',
-              'xray:PutTelemetryRecords',
-              'xray:GetSamplingRules',
-              'xray:GetSamplingTargets'
-            ],
-            resources: ['*']
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ['cloudwatch:PutMetricData'],
-            resources: ['*'],
-            conditions: {
-              StringEquals: {
-                'cloudwatch:namespace': 'bedrock-agentcore'
-              }
-            }
-          }),
-          new iam.PolicyStatement({
-            sid: 'GetAgentAccessToken',
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'bedrock-agentcore:GetWorkloadAccessToken',
-              'bedrock-agentcore:GetWorkloadAccessTokenForJWT',
-              'bedrock-agentcore:GetWorkloadAccessTokenForUserId'
-            ],
-            resources: [
-              `arn:aws:bedrock-agentcore:us-east-1:${this.account}:workload-identity-directory/default`,
-              `arn:aws:bedrock-agentcore:us-east-1:${this.account}:workload-identity-directory/default/workload-identity/agentName-*`
-            ]
-          }),
-          new iam.PolicyStatement({
-            sid: 'BedrockModelInvocation',
-            effect: iam.Effect.ALLOW,
-            actions: [
-              'bedrock:InvokeModel',
-              'bedrock:InvokeModelWithResponseStream'
-            ],
-            resources: [
-              'arn:aws:bedrock:*::foundation-model/*',
-              `arn:aws:bedrock:us-east-1:${this.account}:*`
-            ]
-          })
-        ]
-      })
-    }));
+    // role.attachInlinePolicy(new iam.Policy(this, 'MyConvertedPolicy', {
+    //   document: new iam.PolicyDocument({
+    //     statements: [
+    //       new iam.PolicyStatement({
+    //         sid: 'ECRImageAccess',
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'ecr:BatchGetImage',
+    //           'ecr:GetDownloadUrlForLayer'
+    //         ],
+    //         resources: [
+    //           `arn:aws:ecr:us-east-1:${this.account}:repository/*`
+    //         ]
+    //       }),
+    //       new iam.PolicyStatement({
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'logs:DescribeLogStreams',
+    //           'logs:CreateLogGroup'
+    //         ],
+    //         resources: [
+    //           `arn:aws:logs:us-east-1:${this.account}:log-group:/aws/bedrock-agentcore/runtimes/*`
+    //         ]
+    //       }),
+    //       new iam.PolicyStatement({
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'logs:DescribeLogGroups'
+    //         ],
+    //         resources: [
+    //           `arn:aws:logs:us-east-1:${this.account}:log-group:*`
+    //         ]
+    //       }),
+    //       new iam.PolicyStatement({
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'logs:CreateLogStream',
+    //           'logs:PutLogEvents'
+    //         ],
+    //         resources: [
+    //           `arn:aws:logs:us-east-1:${this.account}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*`
+    //         ]
+    //       }),
+    //       new iam.PolicyStatement({
+    //         sid: 'ECRTokenAccess',
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'ecr:GetAuthorizationToken'
+    //         ],
+    //         resources: ['*']
+    //       }),
+    //       new iam.PolicyStatement({
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'xray:PutTraceSegments',
+    //           'xray:PutTelemetryRecords',
+    //           'xray:GetSamplingRules',
+    //           'xray:GetSamplingTargets'
+    //         ],
+    //         resources: ['*']
+    //       }),
+    //       new iam.PolicyStatement({
+    //         effect: iam.Effect.ALLOW,
+    //         actions: ['cloudwatch:PutMetricData'],
+    //         resources: ['*'],
+    //         conditions: {
+    //           StringEquals: {
+    //             'cloudwatch:namespace': 'bedrock-agentcore'
+    //           }
+    //         }
+    //       }),
+    //       new iam.PolicyStatement({
+    //         sid: 'GetAgentAccessToken',
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'bedrock-agentcore:GetWorkloadAccessToken',
+    //           'bedrock-agentcore:GetWorkloadAccessTokenForJWT',
+    //           'bedrock-agentcore:GetWorkloadAccessTokenForUserId'
+    //         ],
+    //         resources: [
+    //           `arn:aws:bedrock-agentcore:us-east-1:${this.account}:workload-identity-directory/default`,
+    //           `arn:aws:bedrock-agentcore:us-east-1:${this.account}:workload-identity-directory/default/workload-identity/agentName-*`
+    //         ]
+    //       }),
+    //       new iam.PolicyStatement({
+    //         sid: 'BedrockModelInvocation',
+    //         effect: iam.Effect.ALLOW,
+    //         actions: [
+    //           'bedrock:InvokeModel',
+    //           'bedrock:InvokeModelWithResponseStream'
+    //         ],
+    //         resources: [
+    //           'arn:aws:bedrock:*::foundation-model/*',
+    //           `arn:aws:bedrock:us-east-1:${this.account}:*`
+    //         ]
+    //       })
+    //     ]
+    //   })
+    // }));
 
     // Create ECR repository
     const repository = new ecr.Repository(this, "BedrockAgentCoreRepository", {
