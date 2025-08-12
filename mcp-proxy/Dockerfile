@@ -37,6 +37,8 @@ WORKDIR /app
 
 # Copy configuration
 COPY mcp-servers.json ./mcp-servers.json
+COPY atlassian-mcp-wrapper.sh ./atlassian-mcp-wrapper.sh
+RUN chmod +x ./atlassian-mcp-wrapper.sh
 
 # Create entrypoint script
 COPY entrypoint.sh ./entrypoint.sh

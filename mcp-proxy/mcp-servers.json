@@ -1,12 +1,11 @@
 {
   "mcpServers": {
     "atlassian": {
-      "command": "/root/.local/bin/mcp-proxy",
-      "args": ["http://CloudE-McpAt-6nkvX1uNi7hS-277060258.ap-southeast-2.elb.amazonaws.com/sse"]
+      "command": "./atlassian-mcp-wrapper.sh"
     },
-    "aws-cdk": {
+    "aws-cost-explorer": {
       "command": "uvx",
-      "args": ["awslabs.cdk-mcp-server@latest"],
+      "args": ["awslabs.cost-explorer-mcp-server@latest"],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"
       }
@@ -21,10 +20,7 @@
     },
     "github": {
       "command": "/usr/local/bin/github-mcp-server",
-      "args": ["stdio"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
-      }
+      "args": ["stdio"]
     }
   }
 }
