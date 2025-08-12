@@ -226,10 +226,12 @@ cloud-engineer/
 │
 ├── demos/                              # Demo screenshots and documentation
 │   ├── automated-error-response/       # Error response workflow demos
-│   ├── root-cause-analysis/            # Infrastructure issue investigation demos
-│   ├── well-architected-review/        # AWS Well-Architected Framework assessment demos
 │   ├── cloud-ops/                      # AWS operations demos
-│   └── general-queries/                # Documentation query demos
+│   ├── cost-forecasting/               # AWS cost forecasting demos
+│   ├── general-queries/                # Documentation query demos
+│   ├── query-jira/                     # Jira query demos
+│   ├── root-cause-analysis/            # Infrastructure issue investigation demos
+│   └── well-architected-review/        # AWS Well-Architected Framework assessment demos
 │
 ├── generated-diagrams/                 # Architecture diagrams
 │   └── cloud-engineer-architecture.png # Current system architecture

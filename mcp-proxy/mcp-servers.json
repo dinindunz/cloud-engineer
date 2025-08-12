@@ -3,6 +3,13 @@
     "atlassian": {
       "command": "./atlassian-mcp-wrapper.sh"
     },
+    "aws-cloudwatch": {
+      "command": "uvx",
+      "args": ["awslabs.cloudwatch-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
     "aws-cost-explorer": {
       "command": "uvx",
       "args": ["awslabs.cost-explorer-mcp-server@latest"],
@@ -16,6 +23,17 @@
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR",
         "AWS_DOCUMENTATION_PARTITION": "aws"
+      }
+    },
+    "aws-eks": {
+      "command": "uvx",
+      "args": [
+        "awslabs.eks-mcp-server@latest",
+        "--allow-write",
+        "--allow-sensitive-data-access"
+      ],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
       }
     },
     "github": {
