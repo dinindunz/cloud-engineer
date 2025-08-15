@@ -190,8 +190,8 @@ def format_slack_response(agent_result: Dict[str, Any]) -> str:
     result = agent_result.get("result", "")
 
     # Truncate if too long (Slack has message limits)
-    if len(result) > 3000:
-        result = result[:2900] + "\n\n... (truncated for Slack)"
+    # if len(result) > 3000:
+    #     result = result[:2900] + "\n\n... (truncated for Slack)"
 
     return f"🤖 **AWS Cloud Engineer Response:**\n```\n{result}\n```"
 
@@ -316,6 +316,26 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return {
                 "statusCode": 200,
                 "body": json.dumps("Successfully processed CloudWatch Logs"),
+            }
+
+        # Check if this is an AWS Inspector2 event
+        if "aws.inspector2" in event:
+            logger.info("Processing AWS Inspector2 event")
+            
+            # Pass the raw event data to the LLM - it can parse and extract what it needs
+            event_json = json.dumps(event, indent=2)
+            logger.info(f"Processing Inspector2 finding: {event_json}")
+            
+            # Execute the AWS Cloud Engineer agent with raw Inspector2 event
+            agent_result = execute_aws_agent(event_json)
+            
+            # Format and post response to Slack
+            slack_response = format_slack_response(agent_result)
+            post_result = post_slack_message("C02JWK1LN9X", slack_response, bot_token)
+            
+            return {
+                "statusCode": 200,
+                "body": json.dumps("Successfully processed Inspector2 event"),
             }
 
         # Handle actual Slack events

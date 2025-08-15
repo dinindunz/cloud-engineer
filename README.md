@@ -15,7 +15,7 @@ This architecture represents a comprehensive cloud engineer agent solution built
                    ┌─────────────────┐    │ ││ aws_cloudwatch│ | aws_cost_explorer │ │ atlassian │     │ │     
                    │ CloudWatch Logs │───▶│ │└───────────────┘ └───────────────────┘ └───────────┘     │ │
                    └─────────────────┘    │ │┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌────────┐│ │
-                                          │ ││ aws_eks │ │ aws_ecs │ │ aws_ecs │ │ use_aws │ │ memory ││ │
+                                          │ ││ aws_docs│ │ aws_eks │ │ aws_ecs │ │ use_aws │ │ memory ││ │
                                           │ │└─────────┘ └─────────┘ └─────────┘ └─────────┘ └────────┘│ │
                                           │ └──────────────────────────────────────────────────────────┘ │
                                           └──────────────────────────────────────────────────────────────┘

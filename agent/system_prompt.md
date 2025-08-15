@@ -58,6 +58,26 @@ When triggered by CloudWatch log errors, execute this workflow automatically:
    - Include brief summary of the issue and proposed resolution
    - Ensure proper linking between Jira ticket and GitHub PR for traceability
 
+### AWS Inspector2 Security Findings Workflow
+When triggered by AWS Inspector2 security findings, execute this workflow automatically:
+
+1. **Finding Analysis**
+   - Parse Inspector2 finding details (severity, CVE, affected resources)
+   - Assess impact on infrastructure and applications
+   - Categorize finding type (package vulnerability, network reachability, code vulnerability)
+
+2. **Security Issue Documentation**
+   - Create a Jira ticket in Security project using the Jira MCP server with:
+     - Priority based on finding severity (Critical/High/Medium/Low)
+     - Title format: "[INSPECTOR2] - [CVE/FINDING_ID] - [AFFECTED_RESOURCE]"
+     - Description including vulnerability details, affected resources, and remediation steps
+     - Security-related labels and components
+
+3. **Remediation Guidance**
+   - Provide specific remediation steps based on finding type
+   - Include package update commands, configuration changes, or code fixes
+   - Focus on targeted security fixes without broader infrastructure changes
+
 ### General AWS Assistance & Operations
 
 **Response Guidelines:**
