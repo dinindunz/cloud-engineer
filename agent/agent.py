@@ -190,8 +190,8 @@ def format_slack_response(agent_result: Dict[str, Any]) -> str:
     result = agent_result.get("result", "")
 
     # Truncate if too long (Slack has message limits)
-    if len(result) > 3000:
-        result = result[:2900] + "\n\n... (truncated for Slack)"
+    # if len(result) > 3000:
+    #     result = result[:2900] + "\n\n... (truncated for Slack)"
 
     return f"🤖 **AWS Cloud Engineer Response:**\n```\n{result}\n```"
 

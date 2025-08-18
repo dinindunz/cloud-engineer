@@ -14,11 +14,11 @@ The Cloud Engineer Agent conducts a complete Well-Architected Review by:
 ## Demo Screenshots
 
 ### 1. Well-Architected Review Summary
-![Well-Architected Review Summary](http://googleusercontent.com/file_content/1)
+![Well-Architected Review Summary](1_well_architected_review_vpc.png)
 *Comprehensive review summary showing VPC details, identified issues categorized by pillar, and cost savings opportunities*
 
 ### 2. Jira Epic and Action Plan
-![Jira Epic Details](http://googleusercontent.com/file_content/2)
+![Jira Epic Details](2_jira_epic_created_with_individual_pillar_tasks.png)
 *Detailed Jira Epic with remediation timeline, success criteria, and individual child tasks for each Well-Architected pillar*
 
 ## Key Features Demonstrated
