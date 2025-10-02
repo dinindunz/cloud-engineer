@@ -361,6 +361,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             try:
                 # Get user info
                 user_info = get_user_info(user, bot_token)
+                thread_ts = event_data.get("ts", None)
 
                 # Create basic audit log
                 audit_log = create_audit_log(event_data, user_info)
