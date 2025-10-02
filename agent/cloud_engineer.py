@@ -28,7 +28,7 @@ bedrock_model = None
 system_prompt = pathlib.Path("system_prompt.md").read_text()
 
 
-def create_bedrock_model() -> BedrockModel:
+def create_bedrock_model() -> BedrockModel | None:
     """Create a BedrockModel with fallback options"""
     region = os.environ.get("AWS_REGION", "ap-southeast-2")
     model_id = "apac.anthropic.claude-sonnet-4-20250514-v1:0"
