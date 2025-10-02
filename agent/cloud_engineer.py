@@ -157,15 +157,15 @@ def extract_text_from_response(response: Any) -> str:
 
     # If it has a message attribute, try to extract it
     if hasattr(response, "message"):
-        return extract_text_from_response(response.message)
+        return extract_text_from_response(response.message) # type: ignore
 
     # If it has a content attribute, try to extract it
     if hasattr(response, "content"):
-        return extract_text_from_response(response.content)
+        return extract_text_from_response(response.content) # type: ignore
 
     # If it has a text attribute, try to extract it
     if hasattr(response, "text"):
-        return extract_text_from_response(response.text)
+        return extract_text_from_response(response.text) # type: ignore
 
     # Last resort: convert to string
     try:

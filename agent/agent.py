@@ -60,7 +60,7 @@ def is_duplicate_message(message_id: str) -> bool:
 
     try:
         # Try to put the message ID in DynamoDB with a condition that it doesn't exist
-        table = dynamodb.Table(DUPLICATE_TABLE_NAME)
+        table = dynamodb.Table(DUPLICATE_TABLE_NAME) # type: ignore
 
         # Use conditional put to ensure atomicity
         table.put_item(
