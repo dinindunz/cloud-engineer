@@ -28,7 +28,7 @@ bedrock_model = None
 system_prompt = pathlib.Path("system_prompt.md").read_text()
 
 
-def create_bedrock_model() -> BedrockModel:
+def create_bedrock_model() -> BedrockModel | None:
     """Create a BedrockModel with fallback options"""
     region = os.environ.get("AWS_REGION", "ap-southeast-2")
     model_id = "apac.anthropic.claude-sonnet-4-20250514-v1:0"
@@ -157,15 +157,15 @@ def extract_text_from_response(response: Any) -> str:
 
     # If it has a message attribute, try to extract it
     if hasattr(response, "message"):
-        return extract_text_from_response(response.message)
+        return extract_text_from_response(response.message) # type: ignore
 
     # If it has a content attribute, try to extract it
     if hasattr(response, "content"):
-        return extract_text_from_response(response.content)
+        return extract_text_from_response(response.content) # type: ignore
 
     # If it has a text attribute, try to extract it
     if hasattr(response, "text"):
-        return extract_text_from_response(response.text)
+        return extract_text_from_response(response.text) # type: ignore
 
     # Last resort: convert to string
     try:

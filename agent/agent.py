@@ -60,8 +60,8 @@ def is_duplicate_message(message_id: str) -> bool:
 
     try:
         # Try to put the message ID in DynamoDB with a condition that it doesn't exist
-        table = dynamodb.Table(DUPLICATE_TABLE_NAME)
-        
+        table = dynamodb.Table(DUPLICATE_TABLE_NAME) # type: ignore
+
         # Use conditional put to ensure atomicity
         table.put_item(
             Item={
@@ -71,12 +71,12 @@ def is_duplicate_message(message_id: str) -> bool:
             },
             ConditionExpression='attribute_not_exists(message_id)'
         )
-        
+
         # If we get here, the item was successfully added (not a duplicate)
         processed_messages.add(message_id)
         logger.info(f"Message {message_id} is new, processing...")
         return False
-        
+
     except ClientError as e:
         if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
             # Item already exists, this is a duplicate
@@ -113,8 +113,7 @@ def is_bot_mentioned(text: str, bot_user_id: str) -> bool:
         return False
 
     # Direct mention
-    if f"<@{bot_user_id}>" in text:
-        return True
+    return f"<@{bot_user_id}>" in text
 
 
 def get_user_info(user_id: str, bot_token: str) -> Dict[str, Any]:
@@ -134,7 +133,7 @@ def get_user_info(user_id: str, bot_token: str) -> Dict[str, Any]:
 
 
 def post_slack_message(
-    channel: str, text: str, bot_token: str, thread_ts: str = None
+    channel: str, text: str, bot_token: str, thread_ts: str | None = None
 ) -> Dict[str, Any]:
     """Post message to Slack channel with optional threading"""
     try:
@@ -249,8 +248,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return {"statusCode": 200, "body": body["challenge"]}
 
         # Get environment variables
-        bot_token = os.environ.get("SLACK_BOT_TOKEN")
-        bot_user_id = os.environ.get("SLACK_BOT_USER_ID")
+        bot_token = os.environ.get("SLACK_BOT_TOKEN", "")
+        bot_user_id = os.environ.get("SLACK_BOT_USER_ID", "")
 
         # Check if this is a CloudWatch Logs event
         if "awslogs" in event:
@@ -279,6 +278,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             logger.info(f"GitHub Repository: {github_repo}")
 
             # Process each log event
+            error_data_json = ""
             for log_event in log_data["logEvents"]:
                 message = log_event["message"]
                 timestamp = log_event["timestamp"]
@@ -375,7 +375,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         "statusCode": 200,
                         "body": json.dumps({"message": "Processing your request..."})
                     }
-                    
+
                     # Process the agent request asynchronously
                     try:
                         # Execute the AWS Cloud Engineer agent with context
@@ -399,7 +399,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         # Post error message to Slack
                         error_response = f"❌ **AWS Cloud Engineer Error:** {str(agent_error)}"
                         post_slack_message(channel, error_response, bot_token, thread_ts)
-                    
+
                     # Return immediately to prevent Slack retries
                     return immediate_response
 

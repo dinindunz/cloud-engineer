@@ -7,12 +7,12 @@ This architecture represents a comprehensive cloud engineer agent solution built
 
 ```
 ┌─────────────┐    ┌─────────────────┐    ┌──────────────────────────────────────────────────────────────┐         ┌────────────────┐
-│    Slack    │───▶│   API Gateway   │───▶│                      Lambda Function                         │────────▶│   S3 Vectors   │  
+│    Slack    │───▶│   API Gateway   │───▶│                      Lambda Function                         │────────▶│   S3 Vectors   │
 │  Interface  │    │                 │    │                       (AWS Strands)                          │         └────────────────┘
 └─────────────┘    └─────────────────┘    │ ┌──────────────────────────────────────────────────────────┐ │         ┌────────────────┐
                                           │ │                       Tools                              │ │────────▶│    DynamoDB    │
                                           │ │┌───────────────┐ ┌───────────────────┐ ┌───────────┐     │ │         └────────────────┘
-                   ┌─────────────────┐    │ ││ aws_cloudwatch│ | aws_cost_explorer │ │ atlassian │     │ │     
+                   ┌─────────────────┐    │ ││ aws_cloudwatch│ | aws_cost_explorer │ │ atlassian │     │ │
                    │ CloudWatch Logs │───▶│ │└───────────────┘ └───────────────────┘ └───────────┘     │ │
                    └─────────────────┘    │ │┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌────────┐│ │
                                           │ ││ aws_eks │ │ aws_ecs │ │ aws_ecs │ │ use_aws │ │ memory ││ │
@@ -23,29 +23,29 @@ This architecture represents a comprehensive cloud engineer agent solution built
                               ┌────────────────────────────────────────────┼───────────────────────────────────────────┐
                               │                                            │                                           │
                               ▼                                            ▼                                           ▼
-   ┌────────────────────────────────────────────────────────┐  ┌──────────────────────────────────┐   ┌────────────────────────────────────┐                                   
+   ┌────────────────────────────────────────────────────────┐  ┌──────────────────────────────────┐   ┌────────────────────────────────────┐
    │                       Fargate                          │  │          Amazon Bedrock          │   │            Usage Metrics           │
-   │                  ┌─────────────────┐                   │  │                                  │   │                                    │              
+   │                  ┌─────────────────┐                   │  │                                  │   │                                    │
    │                  │    mcp-proxy    │                   │  │ ┌─────────────┐  ┌─────────────┐ │   │ ┌───────────────┐ ┌───────────────┐│
-   │                  └─────────────────┘                   │  │ │   Model     │  │  Guardrails │ │   │ │ Cost Explorer │ │  CloudWatch   ││      
-   │                          │                             │  │ └─────────────┘  └─────────────┘ │   │ └───────────────┘ │  Dashboard    ││     
+   │                  └─────────────────┘                   │  │ │   Model     │  │  Guardrails │ │   │ │ Cost Explorer │ │  CloudWatch   ││
+   │                          │                             │  │ └─────────────┘  └─────────────┘ │   │ └───────────────┘ │  Dashboard    ││
    │                          │                             │  └──────────────────────────────────┘   │                   └───────────────┘│
    │                          ▼                             │                                         └────────────────────────────────────┘
-   │┌─────────────────────────────────────────────────────┐ │                
-   ││                    MCP Servers                      │ │         ┌─────────────────┐                                                       
-   ││                                                     │ │         │     External    │ 
-   ││┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │         │ ┌─────────────┐ │                             
-   │││   aws-docs   │  │  atlassian   │  │    github    │ │ │         │ │   GitHub    │ │ 
-   ││└──────────────┘  └──────────────┘  └──────────────┘ │ │         │ └─────────────┘ │    
-   ││┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │────────▶│ ┌─────────────┐ │  
+   │┌─────────────────────────────────────────────────────┐ │
+   ││                    MCP Servers                      │ │         ┌─────────────────┐
+   ││                                                     │ │         │     External    │
+   ││┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │         │ ┌─────────────┐ │
+   │││   aws-docs   │  │  atlassian   │  │    github    │ │ │         │ │   GitHub    │ │
+   ││└──────────────┘  └──────────────┘  └──────────────┘ │ │         │ └─────────────┘ │
+   ││┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │────────▶│ ┌─────────────┐ │
    │││ cost-explorer│  │   aws-eks    │  │   aws-ecs    │ │ │         │ │  Atlassian  │ │
-   ││└──────────────┘  └──────────────┘  └──────────────┘ │ │         │ └─────────────┘ │   
-   ││┌──────────────┐                                     │ │         │ ┌─────────────┐ │ 
-   │││  cloudwatch  │                                     │ │         │ │    AWS      │ │    
-   ││└──────────────┘                                     │ │         │ │Documentation│ │      
-   │└─────────────────────────────────────────────────────┘ │         │ └─────────────┘ │ 
-   └────────────────────────────────────────────────────────┘         └─────────────────┘                                                                 
-                                                                         
+   ││└──────────────┘  └──────────────┘  └──────────────┘ │ │         │ └─────────────┘ │
+   ││┌──────────────┐                                     │ │         │ ┌─────────────┐ │
+   │││  cloudwatch  │                                     │ │         │ │    AWS      │ │
+   ││└──────────────┘                                     │ │         │ │Documentation│ │
+   │└─────────────────────────────────────────────────────┘ │         │ └─────────────┘ │
+   └────────────────────────────────────────────────────────┘         └─────────────────┘
+
 ```
 ![Architecture Diagram](generated-diagrams/cloud-engineer-architecture.png)
 Generated using aws-diagram MCP server.
@@ -60,7 +60,7 @@ The system behavior is defined in `agent/system_prompt.md`, which outlines the a
 
 ## Enhanced Data Flow
 
-1. **Input Sources**: 
+1. **Input Sources**:
    - Users interact through Slack with cloud engineering queries
    - CloudWatch Logs trigger automated error response workflows
 
@@ -68,7 +68,7 @@ The system behavior is defined in `agent/system_prompt.md`, which outlines the a
 
 3. **Lambda Processing**: AWS Strands-powered Lambda function processes requests using integrated tools:
    - **aws_doc_tools**: Access to AWS documentation and best practices
-   - **aws_cdk_tools**: CDK-specific operations and guidance  
+   - **aws_cdk_tools**: CDK-specific operations and guidance
    - **github_tools**: Repository management and pull request operations
    - **atlassian_tools**: Jira integration for issue tracking and project management
    - **use_aws**: Direct AWS service interactions and resource management
