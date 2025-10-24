@@ -1,11 +1,37 @@
-FROM public.ecr.aws/lambda/python:3.13
+FROM public.ecr.aws/docker/library/python:3.13-slim
+WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt ./
+
+
+COPY requirements.txt requirements.txt
+# Install from requirements file
 RUN pip install -r requirements.txt
 
-# Copy function code
+
+
+
+RUN pip install aws-opentelemetry-distro>=0.10.0
+
+
+# Set AWS region environment variable
+
+ENV AWS_REGION=ap-southeast-2
+ENV AWS_DEFAULT_REGION=ap-southeast-2
+
+
+# Signal that this is running in Docker for host binding logic
+ENV DOCKER_CONTAINER=1
+
+# Create non-root user
+RUN useradd -m -u 1000 bedrock_agentcore
+USER bedrock_agentcore
+
+EXPOSE 8080
+EXPOSE 8000
+
+# Copy entire project (respecting .dockerignore)
 COPY . .
 
-# Set the CMD to the handler (entrypoint)
-CMD ["agent.lambda_handler"]
+# Use the full module path
+
+CMD ["python", "agent.py"]

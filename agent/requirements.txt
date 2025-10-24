@@ -1,3 +1,4 @@
+bedrock-agentcore
 boto3
 mcp
 mcp-proxy

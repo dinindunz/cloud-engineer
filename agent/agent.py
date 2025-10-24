@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Set
 from cloud_engineer import execute_custom_task
 from botocore.exceptions import ClientError
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 # Initialize DynamoDB client for duplicate detection
 dynamodb = boto3.resource('dynamodb')
@@ -449,5 +450,29 @@ def test_lambda_handler():
     logger.info("Test result: %s", json.dumps(result, indent=2))
 
 
+app = BedrockAgentCoreApp()
+
+
+@app.entrypoint
+def invoke(payload):
+    """Handler for Bedrock agent invocation"""
+    # Extract the prompt from the payload
+    user_message = payload.get(
+        "prompt",
+        payload.get("inputText", "No prompt found in input")
+    )
+
+    logger.info(f"Bedrock agent invoked with prompt: {user_message}")
+
+    # Execute the cloud engineer task directly
+    result = execute_custom_task(user_message)
+
+    logger.info(f"Task execution completed, result length: {len(result)}")
+
+    # Return the result as plain text (Bedrock Agent Core expects string response)
+    return result
+
+
 if __name__ == "__main__":
-    test_lambda_handler()
+    app.run()
+
