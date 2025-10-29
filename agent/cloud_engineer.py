@@ -11,6 +11,9 @@ import json
 import re
 import pathlib
 
+# Get the directory where this file is located
+BASE_DIR = pathlib.Path(__file__).parent.resolve()
+
 # Cost tracking is now handled natively via Application Inference Profiles
 # No need for complex custom logging infrastructure
 
@@ -33,7 +36,7 @@ bedrock_model = None
 # Costs are tracked natively in AWS Cost Explorer
 
 # Enhanced system prompt for the agent
-system_prompt = pathlib.Path("prompts/system/orchestrator.md").read_text()
+system_prompt = (BASE_DIR / "prompts/system/orchestrator.md").read_text()
 
 # Specialized agents
 knowledge_base_agent = None
@@ -160,7 +163,7 @@ def initialize_specialized_agents():
     initialize_mcp_clients()
 
     # Agent 1: Knowledge Base Agent
-    knowledge_base_prompt = pathlib.Path("prompts/agents/knowledge_base.md").read_text()
+    knowledge_base_prompt = (BASE_DIR / "prompts/agents/knowledge_base.md").read_text()
     knowledge_base_agent = Agent(
         system_prompt=knowledge_base_prompt,
         tools=aws_documentation_tools,
@@ -168,7 +171,7 @@ def initialize_specialized_agents():
     )
 
     # Agent 2: Error Analysis Agent
-    error_analysis_prompt = pathlib.Path("prompts/agents/error_analysis.md").read_text()
+    error_analysis_prompt = (BASE_DIR / "prompts/agents/error_analysis.md").read_text()
     error_analysis_agent = Agent(
         system_prompt=error_analysis_prompt,
         tools=[use_aws],
@@ -176,7 +179,7 @@ def initialize_specialized_agents():
     )
 
     # Agent 3: JIRA Agent
-    jira_prompt = pathlib.Path("prompts/agents/jira.md").read_text()
+    jira_prompt = (BASE_DIR / "prompts/agents/jira.md").read_text()
     jira_agent = Agent(
         system_prompt=jira_prompt,
         tools=atlassian_mcp_tools,
@@ -184,7 +187,7 @@ def initialize_specialized_agents():
     )
 
     # Agent 4: PR Agent
-    pr_prompt = pathlib.Path("prompts/agents/pr.md").read_text()
+    pr_prompt = (BASE_DIR / "prompts/agents/pr.md").read_text()
     pr_agent = Agent(
         system_prompt=pr_prompt,
         tools=aws_cdk_tools + github_mcp_tools,
@@ -192,7 +195,7 @@ def initialize_specialized_agents():
     )
 
     # Agent 5: Operations Agent
-    operations_prompt = pathlib.Path("prompts/agents/operations.md").read_text()
+    operations_prompt = (BASE_DIR / "prompts/agents/operations.md").read_text()
     operations_agent = Agent(
         system_prompt=operations_prompt,
         tools=[use_aws],

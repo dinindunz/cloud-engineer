@@ -34,4 +34,4 @@ COPY . .
 
 # Use the full module path
 
-CMD ["python", "agent.py"]
+CMD ["opentelemetry-instrument", "python", "-m", "agent"]
