@@ -12,7 +12,9 @@ import re
 import pathlib
 
 # Get the directory where this file is located
-BASE_DIR = pathlib.Path(__file__).parent.resolve()
+# When running with 'python -m agent', __file__ is relative to the module
+# Use absolute() to ensure we get the full path, then parent to get the directory
+BASE_DIR = pathlib.Path(__file__).absolute().parent
 
 # Cost tracking is now handled natively via Application Inference Profiles
 # No need for complex custom logging infrastructure

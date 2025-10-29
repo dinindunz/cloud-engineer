@@ -1,5 +1,8 @@
 from cloud_engineer import execute_custom_task
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
+import logging
+
+logger = logging.getLogger(__name__)
 
 app = BedrockAgentCoreApp()
 
