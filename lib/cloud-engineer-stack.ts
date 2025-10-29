@@ -38,55 +38,55 @@ export class CloudEngineerStack extends cdk.Stack {
       });
 
     // Load Balanced Fargate MCP Atlassian with CDK Docker build
-    const mcpAtlassian = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'McpAtlassian', {
-      cluster,
-      memoryLimitMiB: 1024,
-      cpu: 512,
-      enableExecuteCommand: true,
-      taskImageOptions: {
-        image: ecs.ContainerImage.fromRegistry("ghcr.io/sooperset/mcp-atlassian:latest"),
-        command: ["--transport", "sse", "--port", "9000"],
-        containerPort: 9000,
-        environment: {
-          CONFLUENCE_URL: `${process.env.ATLASSIAN_INSTANCE_URL}/wiki` || '',
-          CONFLUENCE_USERNAME: process.env.ATLASSIAN_EMAIL || '',
-          CONFLUENCE_API_TOKEN: process.env.ATLASSIAN_API_TOKEN || '',
-          JIRA_URL: process.env.ATLASSIAN_INSTANCE_URL || '',
-          JIRA_USERNAME: process.env.ATLASSIAN_EMAIL || '',
-          JIRA_API_TOKEN: process.env.ATLASSIAN_API_TOKEN || ''
-        },
-        logDriver: ecs.LogDrivers.awsLogs({
-          streamPrefix: 'mcp-atlassian',
-          logGroup: new logs.LogGroup(this, 'McpAtlassianLogGroup', {
-            logGroupName: '/ecs/mcp-atlassian',
-            retention: logs.RetentionDays.ONE_WEEK,
-            removalPolicy: cdk.RemovalPolicy.DESTROY,
-          }),
-        }),
-      },
-      containerCpu: 256,
-      containerMemoryLimitMiB: 512,
-      minHealthyPercent: 100,
-      listenerPort: 80,
-      assignPublicIp: true,
-    });
+    // const mcpAtlassian = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'McpAtlassian', {
+    //   cluster,
+    //   memoryLimitMiB: 1024,
+    //   cpu: 512,
+    //   enableExecuteCommand: true,
+    //   taskImageOptions: {
+    //     image: ecs.ContainerImage.fromRegistry("ghcr.io/sooperset/mcp-atlassian:latest"),
+    //     command: ["--transport", "sse", "--port", "9000"],
+    //     containerPort: 9000,
+    //     environment: {
+    //       CONFLUENCE_URL: `${process.env.ATLASSIAN_INSTANCE_URL}/wiki` || '',
+    //       CONFLUENCE_USERNAME: process.env.ATLASSIAN_EMAIL || '',
+    //       CONFLUENCE_API_TOKEN: process.env.ATLASSIAN_API_TOKEN || '',
+    //       JIRA_URL: process.env.ATLASSIAN_INSTANCE_URL || '',
+    //       JIRA_USERNAME: process.env.ATLASSIAN_EMAIL || '',
+    //       JIRA_API_TOKEN: process.env.ATLASSIAN_API_TOKEN || ''
+    //     },
+    //     logDriver: ecs.LogDrivers.awsLogs({
+    //       streamPrefix: 'mcp-atlassian',
+    //       logGroup: new logs.LogGroup(this, 'McpAtlassianLogGroup', {
+    //         logGroupName: '/ecs/mcp-atlassian',
+    //         retention: logs.RetentionDays.ONE_WEEK,
+    //         removalPolicy: cdk.RemovalPolicy.DESTROY,
+    //       }),
+    //     }),
+    //   },
+    //   containerCpu: 256,
+    //   containerMemoryLimitMiB: 512,
+    //   minHealthyPercent: 100,
+    //   listenerPort: 80,
+    //   assignPublicIp: true,
+    // });
 
-    // Allow traffic on port 9000
-    mcpAtlassian.service.connections.allowFromAnyIpv4(
-      ec2.Port.tcp(9000),
-      'Allow MCP Proxy traffic'
-    );
+    // // Allow traffic on port 9000
+    // mcpAtlassian.service.connections.allowFromAnyIpv4(
+    //   ec2.Port.tcp(9000),
+    //   'Allow MCP Proxy traffic'
+    // );
 
-    // Configure health check for MCP Proxy
-    mcpAtlassian.targetGroup.configureHealthCheck({
-      path: "/",
-      port: "9000",
-      healthyHttpCodes: "200,404,405", // 404 might is ok if no health endpoint
-      interval: cdk.Duration.seconds(30),
-      timeout: cdk.Duration.seconds(5),
-      healthyThresholdCount: 2,
-      unhealthyThresholdCount: 3,
-    });
+    // // Configure health check for MCP Proxy
+    // mcpAtlassian.targetGroup.configureHealthCheck({
+    //   path: "/",
+    //   port: "9000",
+    //   healthyHttpCodes: "200,404,405", // 404 might is ok if no health endpoint
+    //   interval: cdk.Duration.seconds(30),
+    //   timeout: cdk.Duration.seconds(5),
+    //   healthyThresholdCount: 2,
+    //   unhealthyThresholdCount: 3,
+    // });
 
     // Load Balanced Fargate MCP Proxy with CDK Docker build
     const mcpProxyService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'McpProxyService', {
@@ -101,7 +101,7 @@ export class CloudEngineerStack extends cdk.Stack {
         }),
         containerPort: 8096,
         environment: {
-          ATLASSIAN_MCP_URL: `http://${mcpAtlassian.loadBalancer.loadBalancerDnsName}/sse`,
+          // ATLASSIAN_MCP_URL: `http://${mcpAtlassian.loadBalancer.loadBalancerDnsName}/sse`,
           GITHUB_PERSONAL_ACCESS_TOKEN: process.env.GITHUB_PERSONAL_ACCESS_TOKEN || '',
         },
         logDriver: ecs.LogDrivers.awsLogs({
@@ -120,7 +120,7 @@ export class CloudEngineerStack extends cdk.Stack {
       assignPublicIp: true,
     });
 
-    mcpProxyService.node.addDependency(mcpAtlassian);
+    // mcpProxyService.node.addDependency(mcpAtlassian);
 
     // Allow traffic on port 8096
     mcpProxyService.service.connections.allowFromAnyIpv4(
@@ -144,16 +144,16 @@ export class CloudEngineerStack extends cdk.Stack {
     );    
 
     // Create DynamoDB table for duplicate message detection
-    const duplicateTable = new dynamodb.Table(this, 'SlackMessageDeduplication', {
-      tableName: 'slack-message-deduplication',
-      partitionKey: {
-        name: 'message_id',
-        type: dynamodb.AttributeType.STRING,
-      },
-      timeToLiveAttribute: 'ttl',
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
+    // const duplicateTable = new dynamodb.Table(this, 'SlackMessageDeduplication', {
+    //   tableName: 'slack-message-deduplication',
+    //   partitionKey: {
+    //     name: 'message_id',
+    //     type: dynamodb.AttributeType.STRING,
+    //   },
+    //   timeToLiveAttribute: 'ttl',
+    //   billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    //   removalPolicy: cdk.RemovalPolicy.DESTROY,
+    // });
 
     // Create IAM role for Lambda function
     const lambdaRole = new iam.Role(this, 'CloudEngineerLambdaRole', {
@@ -166,7 +166,7 @@ export class CloudEngineerStack extends cdk.Stack {
     });
 
     // Grant Lambda access to DynamoDB table
-    duplicateTable.grantReadWriteData(lambdaRole);
+    // duplicateTable.grantReadWriteData(lambdaRole);
     
     // Read MCP server configuration
     let config = require(path.join(__dirname, '../mcp-proxy/mcp-servers.json'));
@@ -180,10 +180,25 @@ export class CloudEngineerStack extends cdk.Stack {
     // Get server names
     const mcpServers = Object.keys(config);
 
-    // Create Lambda function
-    const cloudEngineerFunction = new lambda.DockerImageFunction(this, 'CloudEngineerFunction', {
-      code: lambda.DockerImageCode.fromImageAsset(path.join(__dirname, '../agent'), {
-        platform: assets.Platform.LINUX_AMD64,
+    // Create Lambda function with standard Python runtime
+    const cloudEngineerFunction = new lambda.Function(this, 'CloudEngineerFunction', {
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'hello_handler.lambda_handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../agent'), {
+        exclude: [
+          'Dockerfile',
+          '.dockerignore',
+          '__pycache__',
+          '*.pyc',
+          '.pytest_cache',
+          'tests',
+          'agent_agentcore.py',
+          '.bedrock_agentcore.yaml',
+          '.bedrock_agentcore_new.yaml',
+          'AGENTCORE_DEPLOYMENT.md',
+          'TROUBLESHOOTING.md',
+          'requirements_agentcore.txt',
+        ],
       }),
       role: lambdaRole,
       timeout: cdk.Duration.minutes(15),
@@ -191,12 +206,12 @@ export class CloudEngineerStack extends cdk.Stack {
       environment: {
         MCP_PROXY_DNS: mcpProxyService.loadBalancer.loadBalancerDnsName,
         MCP_SERVERS: JSON.stringify(mcpServers),
-        SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET || '',
-        SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN || '',
-        SLACK_BOT_USER_ID: process.env.SLACK_BOT_USER_ID || '',
-        DYNAMODB_TABLE_NAME: duplicateTable.tableName,
+        // SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET || '',
+        // SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN || '',
+        // SLACK_BOT_USER_ID: process.env.SLACK_BOT_USER_ID || '',
+        // DYNAMODB_TABLE_NAME: duplicateTable.tableName,
       },
-      description: 'AWS Cloud Engineer for Slack integration',
+      description: 'AWS Cloud Engineer Hello World Lambda',
     });
 
     const api = new apigateway.LambdaRestApi(this, 'CloudEngineerApi', {
