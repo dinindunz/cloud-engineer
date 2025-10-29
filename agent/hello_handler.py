@@ -24,7 +24,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     payload = json.dumps({"prompt": "Explain machine learning in simple terms"})
 
     response = client.invoke_agent_runtime(
-        agentRuntimeArn='arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:runtime/CloudEngineer-YxQzQ7DZlo',
+        agentRuntimeArn='arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:runtime/agent-pKC8v19ESw',
         runtimeSessionId='dfmeoagmreaklgmrkleafremoigrmtesogmtrskhmtkrlshmt',  # Must be 33+ chars
         payload=payload,
         qualifier="DEFAULT" # Optional
