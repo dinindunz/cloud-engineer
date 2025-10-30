@@ -1,11 +1,10 @@
 default_agent: agent
 agents:
   agent:
-    name: agent
+    name: cloud_agent
     entrypoint: /Users/geethika/work/cloud-engineer-agent/cloud-engineer/agent/agent.py
     platform: linux/arm64
     container_runtime: docker
-    source_path: /Users/geethika/work/cloud-engineer-agent/cloud-engineer/agent
     aws:
       execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKRuntime-ap-southeast-2-d4f0bc5a29
       execution_role_auto_create: false
@@ -15,7 +14,34 @@ agents:
       ecr_auto_create: false
       network_configuration:
         network_mode: PUBLIC
-        network_mode_config: null
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: cloud_agent-FhuPhW7nFy
+      agent_arn: arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:runtime/cloud_agent-FhuPhW7nFy
+      agent_session_id: 013d1f66-1995-40c8-99f5-0c5142c133da
+    codebuild:
+      project_name: bedrock-agentcore-cloud_agent-builder
+      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKCodeBuild-ap-southeast-2-b7db207d39
+      source_bucket: bedrock-agentcore-codebuild-sources-354334841216-ap-southeast-2
+    authorizer_configuration: null
+    oauth_configuration: null
+  cloud-agent:
+    name: cloud-agent
+    entrypoint: /Users/geethika/work/cloud-engineer-agent/cloud-engineer/agent/agent.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKRuntime-ap-southeast-2-d4f0bc5a29
+      execution_role_auto_create: false
+      account: '354334841216'
+      region: ap-southeast-2
+      ecr_repository: 354334841216.dkr.ecr.ap-southeast-2.amazonaws.com/bedrock-agentcore-agent
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
       protocol_configuration:
         server_protocol: HTTP
       observability:
@@ -25,17 +51,36 @@ agents:
       agent_arn: null
       agent_session_id: null
     codebuild:
-      project_name: null
-      execution_role: null
-      source_bucket: null
-    memory:
-      mode: STM_ONLY
-      memory_id: agent_mem-Ofwh37A70w
-      memory_arn: arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:memory/agent_mem-Ofwh37A70w
-      memory_name: agent_mem
-      event_expiry_days: 30
-      first_invoke_memory_check_done: false
-      was_created_by_toolkit: false
+      project_name: bedrock-agentcore-cloud-agent-builder
+      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKCodeBuild-ap-southeast-2-db5e2ce2a1
+      source_bucket: bedrock-agentcore-codebuild-sources-354334841216-ap-southeast-2
     authorizer_configuration: null
-    request_header_configuration: null
+    oauth_configuration: null
+  cloud_agent:
+    name: cloud_agent
+    entrypoint: /Users/geethika/work/cloud-engineer-agent/cloud-engineer/agent/agent.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKRuntime-ap-southeast-2-d4f0bc5a29
+      execution_role_auto_create: false
+      account: '354334841216'
+      region: ap-southeast-2
+      ecr_repository: 354334841216.dkr.ecr.ap-southeast-2.amazonaws.com/bedrock-agentcore-agent
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: cloud_agent-FhuPhW7nFy
+      agent_arn: arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:runtime/cloud_agent-FhuPhW7nFy
+      agent_session_id: 013d1f66-1995-40c8-99f5-0c5142c133da
+    codebuild:
+      project_name: bedrock-agentcore-cloud_agent-builder
+      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKCodeBuild-ap-southeast-2-b7db207d39
+      source_bucket: bedrock-agentcore-codebuild-sources-354334841216-ap-southeast-2
+    authorizer_configuration: null
     oauth_configuration: null
