@@ -1,38 +1,41 @@
 import boto3
 import json
 import logging
+import os
 from typing import Dict, Any
 
-# Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Simple hello world Lambda handler for testing
+    Lambda handler that invokes Bedrock AgentCore with payload from API request
     
     Args:
-        event: Lambda event object
+        event: Lambda event object containing API Gateway request
         context: Lambda context object
         
     Returns:
-        API Gateway response with hello world message
+        API Gateway response with agent result
     """
     logger.info(f"Received event: {json.dumps(event)}")
 
+    # Extract payload from request body
+    body = json.loads(event.get('body', '{}'))
+    payload = json.dumps(body.get('payload', {}))
+    session_id = body.get('sessionId', f"session-{context.aws_request_id}")
+
     client = boto3.client('bedrock-agentcore', region_name='ap-southeast-2')
-    payload = json.dumps({"prompt": "Explain machine learning in simple terms"})
 
     response = client.invoke_agent_runtime(
         agentRuntimeArn='arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:runtime/agent-pKC8v19ESw',
-        runtimeSessionId='dfmeoagmreaklgmrkleafremoigrmtesogmtrskhmtkrlshmt',  # Must be 33+ chars
+        runtimeSessionId=session_id,
         payload=payload,
-        qualifier="DEFAULT" # Optional
+        qualifier="DEFAULT"
     )
     response_body = response['response'].read()
     response_data = json.loads(response_body)
-    print("Agent Response:", response_data)
-    
+    logger.info("Agent Response received")
 
     return {
         'statusCode': 200,
@@ -49,7 +52,10 @@ if __name__ == '__main__':
     test_event = {
         'httpMethod': 'POST',
         'path': '/cloud-engineer',
-        'body': json.dumps({'test': 'data'})
+        'body': json.dumps({
+            'payload': {'prompt': 'List all S3 buckets'},
+            'sessionId': 'test-session-12345678901234567890123456789012'
+        })
     }
     
     class MockContext:

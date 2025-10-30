@@ -214,20 +214,52 @@ export class CloudEngineerStack extends cdk.Stack {
       description: 'AWS Cloud Engineer Hello World Lambda',
     });
 
-    const api = new apigateway.LambdaRestApi(this, 'CloudEngineerApi', {
-      handler: cloudEngineerFunction,
-      proxy: false,
+    const api = new apigateway.RestApi(this, 'CloudEngineerApi', {
+      restApiName: 'Cloud Engineer API',
+    });
+
+    const lambdaIntegration = new apigateway.AwsIntegration({
+      service: 'lambda',
+      path: `2015-03-31/functions/${cloudEngineerFunction.functionArn}/invocations`,
+      integrationHttpMethod: 'POST',
+      options: {
+        credentialsRole: new iam.Role(this, 'ApiGatewayLambdaInvokeRole', {
+          assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+          inlinePolicies: {
+            InvokeLambda: new iam.PolicyDocument({
+              statements: [
+                new iam.PolicyStatement({
+                  actions: ['lambda:InvokeFunction'],
+                  resources: [cloudEngineerFunction.functionArn],
+                }),
+              ],
+            }),
+          },
+        }),
+        requestParameters: {
+          'integration.request.header.X-Amz-Invocation-Type': "'Event'",
+        },
+        integrationResponses: [
+          {
+            statusCode: '202',
+            responseTemplates: {
+              'application/json': JSON.stringify({ message: 'Request accepted' }),
+            },
+          },
+        ],
+      },
     });
 
     const root = api.root.addResource('cloud-engineer');
-    root.addMethod('POST');
+    root.addMethod('POST', lambdaIntegration, {
+      methodResponses: [{ statusCode: '202' }],
+    });
 
     cdk.Tags.of(this).add('DoNotNuke', 'True');
 
-    // Output the API Gateway URL
     new cdk.CfnOutput(this, 'CloudEngineerSlackEndpoint', {
       value: `${api.url}cloud-engineer`,
-      description: 'API Gateway URL for Slack webhook',
+      description: 'API Gateway URL for async Lambda invocation',
     });
   }
 }

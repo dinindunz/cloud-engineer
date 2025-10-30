@@ -2,10 +2,10 @@ default_agent: agent
 agents:
   agent:
     name: agent
-    entrypoint: agent.py
+    entrypoint: /Users/geethika/work/cloud-engineer-agent/cloud-engineer/agent/agent.py
     platform: linux/arm64
     container_runtime: docker
-    source_path: null
+    source_path: /Users/geethika/work/cloud-engineer-agent/cloud-engineer/agent
     aws:
       execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKRuntime-ap-southeast-2-d4f0bc5a29
       execution_role_auto_create: false
@@ -21,18 +21,18 @@ agents:
       observability:
         enabled: true
     bedrock_agentcore:
-      agent_id: agent-pKC8v19ESw
-      agent_arn: arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:runtime/agent-pKC8v19ESw
-      agent_session_id: 310259d9-0e63-4083-a2bc-dedaaf86bc25
+      agent_id: null
+      agent_arn: null
+      agent_session_id: null
     codebuild:
-      project_name: bedrock-agentcore-agent-builder
-      execution_role: arn:aws:iam::354334841216:role/AmazonBedrockAgentCoreSDKCodeBuild-ap-southeast-2-d4f0bc5a29
-      source_bucket: bedrock-agentcore-codebuild-sources-354334841216-ap-southeast-2
+      project_name: null
+      execution_role: null
+      source_bucket: null
     memory:
       mode: STM_ONLY
-      memory_id: null
-      memory_arn: null
-      memory_name: null
+      memory_id: agent_mem-Ofwh37A70w
+      memory_arn: arn:aws:bedrock-agentcore:ap-southeast-2:354334841216:memory/agent_mem-Ofwh37A70w
+      memory_name: agent_mem
       event_expiry_days: 30
       first_invoke_memory_check_done: false
       was_created_by_toolkit: false
