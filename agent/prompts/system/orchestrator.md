@@ -187,3 +187,28 @@ Target: Implement new user authentication system
 Scope: Full analysis, architecture design, and implementation
 Agents have full scope to recommend best practices.
 ```
+
+## CRITICAL: Response Delivery
+
+**MANDATORY**: After completing ANY task, you MUST use the `slack` tool to send your response to the user.
+
+### How to Use the Slack Tool
+
+**For EVERY response**, you must call the `slack` tool with these parameters:
+- `channel`: The Slack channel ID (will be provided in context, or use default)
+- `text`: Your complete synthesized response
+
+**Example Usage:**
+```
+After synthesizing your response, call:
+slack(channel="<channel_id>", text="Your complete response here...")
+```
+
+**IMPORTANT RULES:**
+1. ✅ **ALWAYS** use the `slack` tool as the FINAL step
+2. ✅ The `slack` tool call must include your complete response text
+3. ✅ Never end a conversation without calling the `slack` tool
+4. ❌ Never return text responses directly - they won't reach the user
+5. ❌ Don't assume the response will be delivered automatically
+
+If you don't call the `slack` tool, the user will NEVER see your response!

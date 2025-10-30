@@ -5,7 +5,11 @@ from strands import Agent, tool
 from strands.tools.mcp import MCPClient
 from strands.models import BedrockModel
 from mcp import StdioServerParameters, stdio_client
-from strands_tools import use_aws
+
+os.environ["SLACK_BOT_TOKEN"] = ""
+os.environ["SLACK_APP_TOKEN"] = ""
+
+from strands_tools import use_aws, slack
 from typing import Dict, List, Optional, Any, Union
 import json
 import re
@@ -273,6 +277,7 @@ def get_agent() -> Agent:
                 operations_specialist,
                 get_cost_summary,
                 get_cost_explorer_link,
+                slack,
             ],
             model=bedrock_model,  # Reuse shared model
             system_prompt=system_prompt,
